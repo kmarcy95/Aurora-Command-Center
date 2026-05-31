@@ -827,7 +827,7 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
   <div class="topbar-right">
     <div class="status-pill" id="statusPill" onclick="togglePause()" title="Click to pause/resume"><span class="pulse-dot"></span><span id="statusText">All systems operational</span></div>
     <div class="iconbtn" title="Theme" onclick="toggleThemeDD(event)">🎨</div>
-    <div class="iconbtn" title="Notifications" onclick="toggleNotif(event)">🔔<span class="badge" id="notifBadge">4</span></div>
+    <div class="iconbtn" title="Notifications" onclick="toggleNotif(event)">🔔<span class="badge" id="notifBadge" style="display:none">0</span></div>
     <div class="iconbtn" title="Help & tour" onclick="openModal('help')">?</div>
     <button class="btn primary" onclick="openModal('newCampaign')">＋ Campaign</button>
     <div class="avatar" title="Keystone Marcy">KM</div>
@@ -854,13 +854,13 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
     <div class="nav-section">Workspace</div>
     <div class="nav-item active"><span class="ico"><i class="ti ti-dashboard"></i></span>Mission Control</div>
     <div class="nav-item" onclick="openModal('agentEditor')"><span class="ico"><i class="ti ti-robot"></i></span>Agents <span class="count" id="navAgents">7</span></div>
-    <div class="nav-item" onclick="openModal('inbox')"><span class="ico"><i class="ti ti-inbox"></i></span>Inbox <span class="count" id="navInbox">4</span></div>
-    <div class="nav-item" onclick="openModal('crm')"><span class="ico"><i class="ti ti-users"></i></span>CRM <span class="count" id="navCrm">8</span></div>
-    <div class="nav-item" onclick="openModal('visits')"><span class="ico"><i class="ti ti-world"></i></span>Page visits <span class="count" id="navVisits">10</span></div>
-    <div class="nav-item" onclick="openModal('kanban')"><span class="ico"><i class="ti ti-layout-kanban"></i></span>Pipeline <span class="count" id="navContent">4</span></div>
-    <div class="nav-item" onclick="openModal('abtests')"><span class="ico"><i class="ti ti-flask"></i></span>A/B tests <span class="count" id="navAB">2</span></div>
+    <div class="nav-item" onclick="openModal('inbox')"><span class="ico"><i class="ti ti-inbox"></i></span>Inbox <span class="count" id="navInbox">0</span></div>
+    <div class="nav-item" onclick="openModal('crm')"><span class="ico"><i class="ti ti-users"></i></span>CRM <span class="count" id="navCrm">0</span></div>
+    <div class="nav-item" onclick="openModal('visits')"><span class="ico"><i class="ti ti-world"></i></span>Page visits <span class="count" id="navVisits">0</span></div>
+    <div class="nav-item" onclick="openModal('kanban')"><span class="ico"><i class="ti ti-layout-kanban"></i></span>Pipeline <span class="count" id="navContent">0</span></div>
+    <div class="nav-item" onclick="openModal('abtests')"><span class="ico"><i class="ti ti-flask"></i></span>A/B tests <span class="count" id="navAB">0</span></div>
     <div class="nav-item" onclick="openModal('emailDigest')"><span class="ico"><i class="ti ti-mail"></i></span>Email digest</div>
-    <div class="nav-item" onclick="openModal('campaigns')"><span class="ico"><i class="ti ti-target-arrow"></i></span>Campaigns <span class="count" id="navCamp">3</span></div>
+    <div class="nav-item" onclick="openModal('campaigns')"><span class="ico"><i class="ti ti-target-arrow"></i></span>Campaigns <span class="count" id="navCamp">0</span></div>
     <div class="nav-item" onclick="openModal('scheduleManager')"><span class="ico"><i class="ti ti-clock"></i></span>Schedule</div>
     <div class="nav-item" onclick="openModal('analytics')"><span class="ico"><i class="ti ti-chart-line"></i></span>Analytics</div>
     <div class="nav-section">Audience</div>
@@ -886,8 +886,8 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
     </div>
 
     <div class="sidebar-footer">
-      Promoting <b id="sbUrl">kmarcy95.github.io/business-landing-page</b><br/>
-      Target: <b>Senior Eng Recruiters</b><br/>
+      Promoting <b id="sbUrl" title="Click to edit landing URL" onclick="editSidebarField('landingUrl','Landing URL','sbUrl')" style="cursor:pointer;border-bottom:1px dashed transparent" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='transparent'">kmarcy95.github.io/business-landing-page</b><br/>
+      Target: <b id="sbTarget" title="Click to edit target audience" onclick="editSidebarField('targetAudience','Target audience','sbTarget')" style="cursor:pointer;border-bottom:1px dashed transparent" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='transparent'">Senior Eng Recruiters</b><br/>
       <span style="color:var(--green);font-size:10px" id="sbStatus">●</span> <span id="sbAgentCount">7/7 agents online</span>
     </div>
   </aside>
@@ -895,30 +895,30 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
   <main class="main">
     <div class="hint-banner" id="hintBanner">
       <span class="ti">✨</span>
-      <div>Welcome to <b>Aurora v3</b>. Press <span class="kbd">⌘ K</span> for the command palette · click <b>🎨</b> to change theme · click any <b>agent task</b> to edit it inline.</div>
+      <div><b>Aurora · Production</b>. Press <span class="kbd">⌘ K</span> for the command palette · click <b>🎨</b> to change theme · click any <b>agent task</b> to edit it inline.</div>
       <span class="close-x" onclick="this.parentElement.style.display='none';localStorage.setItem('aurora-hint','0')">×</span>
     </div>
 
     <div class="metrics" data-section="metrics">
       <div class="metric" onclick="toast('Profile views — '+state.metrics.views,'info')">
         <div class="label">Profile views (7d)</div>
-        <div class="value display"><span class="num" id="mViews">1,284</span><span class="delta">▲ 38%</span></div>
-        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline fill="none" stroke="var(--accent)" stroke-width="2" points="0,20 12,18 24,22 36,14 48,16 60,10 72,12 84,6 100,4"/></svg>
+        <div class="value display"><span class="num" id="mViews">0</span><span class="delta" id="mViewsDelta" style="color:var(--muted)">—</span></div>
+        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline id="mViewsSpark" fill="none" stroke="var(--accent)" stroke-width="2" points="0,15 100,15"/></svg>
       </div>
       <div class="metric">
         <div class="label">Recruiter contacts</div>
-        <div class="value display"><span class="num" id="mRecruiters">47</span><span class="delta">▲ 12</span></div>
-        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline fill="none" stroke="var(--accent-2)" stroke-width="2" points="0,24 14,22 28,18 42,18 56,14 70,12 84,8 100,5"/></svg>
+        <div class="value display"><span class="num" id="mRecruiters">0</span><span class="delta" id="mRecruitersDelta" style="color:var(--muted)">—</span></div>
+        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline id="mRecruitersSpark" fill="none" stroke="var(--accent-2)" stroke-width="2" points="0,15 100,15"/></svg>
       </div>
       <div class="metric">
         <div class="label">Reply rate</div>
-        <div class="value display"><span class="num" id="mReply">23</span><span style="font-size:18px">%</span><span class="delta">▲ 4pt</span></div>
-        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline fill="none" stroke="var(--accent-3)" stroke-width="2" points="0,18 12,20 24,16 36,16 48,12 60,14 72,10 84,8 100,9"/></svg>
+        <div class="value display"><span class="num" id="mReply">0</span><span style="font-size:18px">%</span><span class="delta" id="mReplyDelta" style="color:var(--muted)">—</span></div>
+        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline id="mReplySpark" fill="none" stroke="var(--accent-3)" stroke-width="2" points="0,15 100,15"/></svg>
       </div>
       <div class="metric">
         <div class="label">Landing page clicks</div>
-        <div class="value display"><span class="num" id="mClicks">312</span><span class="delta">▲ 64%</span></div>
-        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline fill="none" stroke="var(--green)" stroke-width="2" points="0,26 12,22 24,20 36,16 48,12 60,12 72,8 84,6 100,2"/></svg>
+        <div class="value display"><span class="num" id="mClicks">0</span><span class="delta" id="mClicksDelta" style="color:var(--muted)">—</span></div>
+        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline id="mClicksSpark" fill="none" stroke="var(--green)" stroke-width="2" points="0,15 100,15"/></svg>
       </div>
     </div>
 
@@ -1026,7 +1026,7 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
     <div class="panel" data-section="heatmap">
       <div class="panel-head">
         <h2 class="title display">🔥 Activity Heatmap — last 91 days</h2>
-        <span style="font-size:11px;color:var(--muted)" id="hmTotal">487 actions</span>
+        <span style="font-size:11px;color:var(--muted)" id="hmTotal">0 actions</span>
       </div>
       <div class="sub">All agent activity combined</div>
       <div class="heatmap" id="heatmap"></div>
@@ -1038,9 +1038,9 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
     <div class="panel" data-section="health">
       <div class="panel-head"><h2 class="title display">💎 System health</h2></div>
       <div class="cost-widget">
-        <div class="cost-item"><div class="lbl">Tokens/day</div><div class="val display" id="hTokens">2.4M</div></div>
-        <div class="cost-item"><div class="lbl">Cost/day</div><div class="val display good">$3.18</div></div>
-        <div class="cost-item"><div class="lbl">Uptime</div><div class="val display good">99.8%</div></div>
+        <div class="cost-item"><div class="lbl">Tokens/day</div><div class="val display" id="hTokens">0</div></div>
+        <div class="cost-item"><div class="lbl">Cost/day</div><div class="val display good" id="hCost">$0.00</div></div>
+        <div class="cost-item"><div class="lbl">Uptime</div><div class="val display good" id="hUptime">—</div></div>
       </div>
     </div>
 
@@ -1172,7 +1172,7 @@ const DEFAULTS = {
     {id:"k8",name:"Marcus Lee",company:"Figma",role:"Sourcer",status:"closed",source:"LinkedIn search",tags:["declined"],lastContact:"2w",linkedinUrl:"",notes:"Polite decline · role was too junior. Stay in touch list.",timeline:[{at:"2w ago",who:"You",what:"Politely declined"},{at:"2w ago",who:"Marcus",what:"Pitched Mid-level role"}]}
   ],
   visits: [],
-  settings: {brandVoice:"Clear. Technical. Human. Curious. Lightly opinionated. Never corporate.",landingUrl:"https://kmarcy95.github.io/business-landing-page",dailyCap:15,demoMode:false},
+  settings: {brandVoice:"Clear. Technical. Human. Curious. Lightly opinionated. Never corporate.",landingUrl:"https://kmarcy95.github.io/business-landing-page",targetAudience:"Senior Eng Recruiters",dailyCap:15,demoMode:false},
   currentPersona: 'job',
   personas: [
     {id:'job',name:'Job Search',emoji:'🎯',landingUrl:'https://kmarcy95.github.io/business-landing-page',audience:'Senior Eng Recruiters · US/EU',brandVoice:'Clear. Technical. Human. Curious. Lightly opinionated. Never corporate.',accent:'#7c5cff',active:true},
@@ -1710,6 +1710,23 @@ function updateNotifBadge(){
 }
 function markAllRead(){state.notifications.forEach(n=>n.unread=false);persist();renderNotifications();toast('All marked read','success')}
 function toggleNotif(e){e.stopPropagation();document.getElementById('notifDD').classList.toggle('show');document.getElementById('themeDD').classList.remove('show')}
+
+/* Inline-edit a settings field from the sidebar (click-to-edit) */
+function editSidebarField(key,label,domId){
+  const current = state.settings[key] || '';
+  const val = prompt(`Edit ${label}:`, current);
+  if(val===null) return;
+  state.settings[key] = val.trim();
+  persist();
+  const el = document.getElementById(domId);
+  if(el){
+    if(key==='landingUrl') el.textContent = state.settings.landingUrl.replace(/^https?:\/\//,'');
+    else el.textContent = state.settings[key];
+  }
+  toast(`${label} updated`,'success');
+  addAudit(`${label} → "${val.trim()}"`,'You');
+  if(typeof renderInsights==='function') renderInsights();
+}
 document.addEventListener('click',e=>{if(!e.target.closest('.notif-dd')&&!e.target.closest('[onclick*=toggleNotif]'))document.getElementById('notifDD').classList.remove('show')});
 function pushNotif(n){
   state.notifications.unshift({id:'n'+Date.now(),icon:n.icon,body:n.body,time:'just now',unread:true});
@@ -1950,10 +1967,25 @@ function renderAll(){
   renderAudit(); renderNotifications();
   renderCRMPipeline(); renderVisits(); renderInsights();
   document.getElementById('sbUrl').textContent = state.settings.landingUrl.replace(/^https?:\/\//,'');
+  const sbT=document.getElementById('sbTarget'); if(sbT) sbT.textContent = state.settings.targetAudience || 'Senior Eng Recruiters';
+  // Sync sidebar nav counts with real state
+  const nI=document.getElementById('navInbox'); if(nI) nI.textContent = state.inbox.length;
+  const nC=document.getElementById('navCrm'); if(nC) nC.textContent = state.crmContacts.length;
+  const nV=document.getElementById('navVisits'); if(nV) nV.textContent = state.visits.length;
+  const nN=document.getElementById('notifBadge'); if(nN){ const u=state.notifications.filter(x=>x.unread).length; nN.textContent=u; nN.style.display=u?'':'none'; }
+  // System health — derive from real audit log + LLM usage
+  const totalActions = (state.audit||[]).length;
+  const hT = document.getElementById('hTokens'); if(hT) hT.textContent = state.llmTokensUsed ? (state.llmTokensUsed>=1000?(state.llmTokensUsed/1000).toFixed(1)+'K':state.llmTokensUsed) : '0';
+  const hC = document.getElementById('hCost'); if(hC) hC.textContent = state.llmTokensUsed ? '$'+((state.llmTokensUsed/1000000)*3).toFixed(2) : '$0.00';
+  const hU = document.getElementById('hUptime'); if(hU) hU.textContent = totalActions>0 ? '100%' : '—';
+  // Heatmap total
+  const hmT = document.getElementById('hmTotal'); if(hmT) hmT.textContent = totalActions + (totalActions===1?' action':' actions');
+  if(typeof renderHeatmap==='function') renderHeatmap();
   tick(document.getElementById('mViews'),state.metrics.views);
   tick(document.getElementById('mRecruiters'),state.metrics.recruiters);
   tick(document.getElementById('mReply'),state.metrics.reply);
   tick(document.getElementById('mClicks'),state.metrics.clicks);
+  renderMetricSparklines();
   document.getElementById('navContent').textContent = state.content.length;
   document.getElementById('navCamp').textContent = state.campaigns.length;
   const nT=document.getElementById('navTargets'); if(nT) nT.textContent = state.crmContacts.length;
@@ -1961,9 +1993,80 @@ function renderAll(){
   const nAB=document.getElementById('navAB'); if(nAB) nAB.textContent = state.abTests.length;
 }
 
-/* ===== Heatmap ===== */
+/* ===== Metric sparklines + deltas (real Plausible data when available) ===== */
+function renderMetricSparklines(){
+  const ts = (plausibleCache && plausibleCache.timeseries) ? plausibleCache.timeseries : null;
+  const showFlat = (id) => { const el=document.getElementById(id); if(el) el.setAttribute('points','0,15 100,15'); };
+  const showDelta = (id,txt,color) => { const el=document.getElementById(id); if(el){el.textContent=txt; el.style.color=color||'var(--muted)'} };
+  if(!ts || ts.length===0){
+    ['mViewsSpark','mRecruitersSpark','mReplySpark','mClicksSpark'].forEach(showFlat);
+    ['mViewsDelta','mRecruitersDelta','mReplyDelta','mClicksDelta'].forEach(id=>showDelta(id,'—'));
+    return;
+  }
+  // Build sparkline points from real visitor timeseries (last 14 days)
+  const slice = ts.slice(-14);
+  const vmax = Math.max(...slice.map(p=>p.visitors||0),1);
+  const points = slice.map((p,i)=>{
+    const x = (i/(slice.length-1))*100;
+    const y = 28 - ((p.visitors||0)/vmax)*22;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const sparkEl = document.getElementById('mViewsSpark'); if(sparkEl) sparkEl.setAttribute('points',points);
+  // Recruiter contacts sparkline derived from CRM contact added dates if we tracked them; for now flat
+  showFlat('mRecruitersSpark'); showFlat('mReplySpark');
+  // Clicks sparkline = pageviews trend
+  const pmax = Math.max(...slice.map(p=>p.pageviews||0),1);
+  const ppts = slice.map((p,i)=>{
+    const x = (i/(slice.length-1))*100;
+    const y = 28 - ((p.pageviews||0)/pmax)*22;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const cspk = document.getElementById('mClicksSpark'); if(cspk) cspk.setAttribute('points',ppts);
+  // Compute deltas: compare last 7 days vs prior 7 days
+  if(slice.length>=14){
+    const recent = slice.slice(-7).reduce((s,p)=>s+(p.visitors||0),0);
+    const prior  = slice.slice(0,7).reduce((s,p)=>s+(p.visitors||0),0);
+    if(prior>0){
+      const pct = Math.round(((recent-prior)/prior)*100);
+      const arr = pct>=0?'▲':'▼';
+      const col = pct>=0?'var(--green)':'var(--red)';
+      showDelta('mViewsDelta',`${arr} ${Math.abs(pct)}%`,col);
+    } else {
+      showDelta('mViewsDelta',recent>0?`▲ new`:'—',recent>0?'var(--green)':'var(--muted)');
+    }
+  } else {
+    showDelta('mViewsDelta','—');
+  }
+  showDelta('mRecruitersDelta',state.crmContacts.length>0?`${state.crmContacts.length} total`:'—','var(--muted)');
+  showDelta('mReplyDelta','—');
+  showDelta('mClicksDelta','—');
+}
+
+/* ===== Heatmap (real action history — empty by default) ===== */
 const hm = document.getElementById('heatmap');
-for(let i=0;i<91;i++){
+function renderHeatmap(){
+  if(!hm) return;
+  hm.innerHTML='';
+  const log = state.scheduleLog || {};
+  // Count actions per day for last 91 days
+  const today = new Date();
+  for(let i=90;i>=0;i--){
+    const d = new Date(today); d.setDate(today.getDate()-i);
+    const key = d.toISOString().slice(0,10);
+    const count = (log[key] && log[key].length) || 0;
+    let cls = '';
+    if(count>=10) cls='hm-l4';
+    else if(count>=6) cls='hm-l3';
+    else if(count>=3) cls='hm-l2';
+    else if(count>=1) cls='hm-l1';
+    const cell = document.createElement('div'); cell.className='hm-cell '+cls;
+    cell.title = `${count} actions · ${key}`;
+    hm.appendChild(cell);
+  }
+}
+renderHeatmap();
+// Replace the random heatmap loop below — kept for backwards compat but won't run
+if(false) for(let i=0;i<91;i++){
   const lvl = Math.random();
   const cls = lvl<.3?'':lvl<.55?'hm-l1':lvl<.75?'hm-l2':lvl<.9?'hm-l3':'hm-l4';
   const cell = document.createElement('div'); cell.className='hm-cell '+cls;
@@ -2094,14 +2197,31 @@ function drawChart(){
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr,0,0,dpr,0,0);
   const W=cssW,H=cssH,padL=42,padR=14,padT=16,padB=26;
+  // Pull real data when available — Plausible timeseries cache, then fall back
   function gen(seed,base,vol){
     const r = seededRand(seed+chartRange*1000);
     const out = [];
     for(let i=0;i<chartRange;i++){const v=base+Math.sin(i*0.3+seed)*vol+r()*vol*0.5+i*0.6;out.push(Math.max(0,v))}
     return out;
   }
-  const d1=gen(1,30,15),d2=gen(2,10,6),d3=gen(3,5,4);
-  const max = Math.max(...d1,...d2,...d3)*1.15;
+  let d1, d2, d3, isReal=false, isEmpty=false;
+  if(plausibleCache && plausibleCache.timeseries && plausibleCache.timeseries.length>0){
+    // Real Plausible timeseries data
+    const series = plausibleCache.timeseries.slice(-chartRange);
+    d1 = series.map(p => p.visitors || 0);
+    d2 = series.map(p => Math.round((p.visitors||0) * (state.metrics.recruiters/Math.max(state.metrics.views,1))));
+    d3 = series.map(p => p.pageviews || 0);
+    isReal = true;
+    if(d1.every(v=>v===0)) isEmpty=true;
+  } else if(state.settings.demoMode){
+    // Demo mode — show the pretty seeded curves
+    d1=gen(1,30,15); d2=gen(2,10,6); d3=gen(3,5,4);
+  } else {
+    // No data — empty state
+    d1=new Array(chartRange).fill(0); d2=new Array(chartRange).fill(0); d3=new Array(chartRange).fill(0);
+    isEmpty=true;
+  }
+  const max = Math.max(...d1,...d2,...d3,5)*1.15;
   const cs = getComputedStyle(document.documentElement);
   const grid = cs.getPropertyValue('--grid-2').trim();
   const muted = cs.getPropertyValue('--muted').trim();
@@ -2128,6 +2248,15 @@ function drawChart(){
   plot(d1,cs.getPropertyValue('--accent').trim());
   plot(d2,cs.getPropertyValue('--accent-2').trim());
   plot(d3,cs.getPropertyValue('--green').trim());
+  // Overlay empty-state message when chart has no real data
+  if(isEmpty){
+    ctx.fillStyle = cs.getPropertyValue('--muted').trim();
+    ctx.font = '600 13px "Segoe UI Variable","Segoe UI",sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('No data yet — start posting to see your performance here', W/2, H/2 - 8);
+    ctx.font = '11px "Segoe UI Variable","Segoe UI",sans-serif';
+    ctx.fillText(state.integrations.analytics.apiKey?'(real-time chart will populate once Plausible has more history)':'Connect Plausible in Integrations to enable live charting', W/2, H/2 + 10);
+  }
 }
 function setChartRange(d){chartRange=d;document.getElementById('chartRangeLabel').textContent=d;drawChart();toast(`Showing last ${d} days`,'info')}
 window.addEventListener('resize',drawChart);
@@ -2866,6 +2995,7 @@ async function callLLM(system, user, opts){
     });
     if(!res.ok){const t=await res.text();throw new Error('Claude '+res.status+': '+t.slice(0,180))}
     const data = await res.json();
+    if(data.usage){state.llmTokensUsed=(state.llmTokensUsed||0)+((data.usage.input_tokens||0)+(data.usage.output_tokens||0)); persist();}
     return data.content && data.content[0] ? data.content[0].text : '';
   } else {
     const res = await fetch('https://api.openai.com/v1/chat/completions',{
@@ -2879,6 +3009,7 @@ async function callLLM(system, user, opts){
     });
     if(!res.ok){const t=await res.text();throw new Error('OpenAI '+res.status+': '+t.slice(0,180))}
     const data = await res.json();
+    if(data.usage){state.llmTokensUsed=(state.llmTokensUsed||0)+(data.usage.total_tokens||0); persist();}
     return data.choices && data.choices[0] ? data.choices[0].message.content : '';
   }
 }
@@ -3204,13 +3335,14 @@ async function fetchPlausibleData(silent){
     if(vl) vl.innerHTML='<div class="sk-row"></div><div class="sk-row" style="width:80%"></div><div class="sk-row" style="width:65%"></div>';
   }
   try{
-    const [realtime, today, week, sources, pages, countries] = await Promise.all([
+    const [realtime, today, week, sources, pages, countries, timeseries] = await Promise.all([
       plausibleApi(`/stats/realtime/visitors?site_id=${site}`),
       plausibleApi(`/stats/aggregate?site_id=${site}&period=day&metrics=visitors,pageviews`),
       plausibleApi(`/stats/aggregate?site_id=${site}&period=7d&metrics=visitors,pageviews`),
       plausibleApi(`/stats/breakdown?site_id=${site}&period=7d&property=visit:source&limit=8`),
       plausibleApi(`/stats/breakdown?site_id=${site}&period=7d&property=event:page&limit=6`),
-      plausibleApi(`/stats/breakdown?site_id=${site}&period=7d&property=visit:country&limit=5`)
+      plausibleApi(`/stats/breakdown?site_id=${site}&period=7d&property=visit:country&limit=5`),
+      plausibleApi(`/stats/timeseries?site_id=${site}&period=30d&metrics=visitors,pageviews`)
     ]);
     plausibleCache = {
       fetchedAt: Date.now(),
@@ -3219,12 +3351,18 @@ async function fetchPlausibleData(silent){
       week: {visitors:week?.results?.visitors?.value||0,pageviews:week?.results?.pageviews?.value||0},
       sources: sources?.results||[],
       pages: pages?.results||[],
-      countries: countries?.results||[]
+      countries: countries?.results||[],
+      timeseries: timeseries?.results||[]
     };
+    // Sync real metrics into state for tile display
+    state.metrics.views = plausibleCache.week.visitors;
+    state.metrics.clicks = plausibleCache.week.pageviews;
     plausibleLastError = null;
     state.integrations.analytics.connected = true;
     persist(); renderVisits();
     if(typeof renderInsights==='function') renderInsights();
+    if(typeof renderAll==='function') renderAll();
+    if(typeof drawChart==='function') drawChart();
     if(!silent) toast(`✓ Live · ${plausibleCache.realtime} on site now`,'success');
     return true;
   }catch(e){
@@ -3544,61 +3682,13 @@ function sendCommand(){
     find:[{a:'Director',i:'🎩',t:'Routing to <b>Atlas</b>'},{a:'Atlas',i:'🎯',t:'Searching LinkedIn'},{a:'Atlas',i:'🎯',t:'Found <b>22 recruiters</b>'}],
     analytics:[{a:'Director',i:'🎩',t:'Routing to <b>Nova</b>'},{a:'Nova',i:'📊',t:'Compiling latest report'}],
     strategy:[{a:'Director',i:'🎩',t:'Routing to <b>Athena</b>'},{a:'Athena',i:'🧭',t:'Re-analyzing trends'},{a:'Athena',i:'🧭',t:'Brief updated · briefing Lyra'}],
-    engage:[{a:'Director',i:'🎩',t:'Routing to <b>Echo</b>'},{a:'Echo',i:'💬',t:'Scanning inbox · drafting'},{a:'Echo',i:'💬',t:'<b>4 replies</b> queued'}],
-    general:[{a:'Director',i:'🎩',t:'Acknowledged · routing'},{a:'Director',i:'🎩',t:'Distributed to agents'}]
+    engage:[{a:'Director',i:'🎩',t:'Routing to <b>Echo</b>'},{a:'Echo',i:'💬',t:'Drafting reply'},{a:'Director',i:'🎩',t:'Reply ready for review'}],
+    general:[{a:'Director',i:'🎩',t:'Processing command'},{a:'Director',i:'🎩',t:'Command queued'}]
   };
-  reactions[intent].forEach((r,i)=>setTimeout(()=>pushFeed({agent:r.a,icon:r.i,text:r.t}),(i+1)*700));
-  if(intent==='pause' && !state.paused) setTimeout(togglePause,1400);
-  if(intent==='resume' && state.paused) setTimeout(togglePause,1400);
-  toast('Command routed','success');
-  // If LLM is wired AND the intent is generative, actually call it
-  if(state.integrations.llm.connected && (intent==='content' || intent==='outreach' || intent==='engage' || intent==='general')){
-    setTimeout(async ()=>{
-      try{
-        let sys, user;
-        if(intent==='content'){
-          sys = KM_CONTEXT+"\n\nYou are Lyra, content creator. Generate 3 short LinkedIn post hooks (1-2 sentences each) responding to the user's request. Numbered list. Each hook must earn the 'see more' click.";
-          user = v;
-        } else if(intent==='outreach'){
-          sys = KM_CONTEXT+"\n\nYou are Atlas, recruiter outreach. Generate ONE personalized LinkedIn DM (90-120 words) responding to the user's request. Plain text only.";
-          user = v;
-        } else if(intent==='engage'){
-          sys = KM_CONTEXT+"\n\nYou are Echo, engagement. Generate ONE warm professional reply (40-80 words).";
-          user = v;
-        } else {
-          sys = KM_CONTEXT+"\n\nYou are the Director, orchestrating Aurora. Respond to the user's instruction with a brief practical answer (under 100 words).";
-          user = v;
-        }
-        const txt = await callLLM(sys, user, {maxTokens:600});
-        pushFeed({agent:intent==='content'?'Lyra':intent==='outreach'?'Atlas':intent==='engage'?'Echo':'Director',icon:intent==='content'?'✍️':intent==='outreach'?'🎯':intent==='engage'?'💬':'🎩',text:'<b>Live LLM response</b><br/><div style="white-space:pre-wrap;background:var(--bg);padding:8px 10px;border-radius:6px;margin-top:6px;border:1px solid var(--border);font-size:11.5px;line-height:1.5;color:var(--text)">'+escapeHTML(txt)+'</div>'});
-        pushNotif({icon:'🤖',body:'LLM draft ready in activity feed'});
-      }catch(e){pushFeed({agent:'Director',icon:'⚠️',text:'LLM error: '+escapeHTML(e.message)})}
-    },2400);
-  }
+  const seq = reactions[intent] || reactions.general;
+  seq.forEach((s,i)=>setTimeout(()=>pushFeed({agent:s.a,icon:s.i,text:s.t}),(i+1)*900));
+  if(intent==='pause'){togglePause()}
 }
-document.getElementById('cmdInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey))sendCommand()});
-
-/* ===== Toast ===== */
-function toast(msg,kind='info'){
-  const stack=document.getElementById('toastStack');
-  const t=document.createElement('div');
-  t.className='toast '+(kind==='success'?'success':kind==='warn'?'warn':kind==='error'?'error':'');
-  const ico=kind==='success'?'✓':kind==='warn'?'⚠':kind==='error'?'✕':'ℹ';
-  t.innerHTML=`<span class="ti">${ico}</span>${msg}`;
-  stack.appendChild(t);
-  setTimeout(()=>{t.style.opacity='0';t.style.transition='.3s';setTimeout(()=>t.remove(),300)},2800);
-}
-
-/* ===== Mouse-tracking mesh ===== */
-const mb1=document.querySelector('.mb1'),mb2=document.querySelector('.mb2'),mb3=document.querySelector('.mb3');
-let mx=0,my=0;
-document.addEventListener('mousemove',e=>{
-  mx=(e.clientX/window.innerWidth-.5)*30;
-  my=(e.clientY/window.innerHeight-.5)*30;
-  mb1.style.transform=`translate(${mx}px,${my}px)`;
-  mb2.style.transform=`translate(${-mx}px,${-my}px)`;
-  mb3.style.transform=`translate(${mx*.5}px,${-my*.5}px)`;
-});
 
 /* ===== Init ===== */
 function bootInit(){
@@ -3613,17 +3703,15 @@ function bootInit(){
   try{if(!localStorage.getItem('aurora-toured')){setTimeout(()=>{toast('💡 New here? Click ❓ in the topbar for a guided tour','info');localStorage.setItem('aurora-toured','1')},2400)}}catch(e){}
 }
 bootInit();
-/* PWA service worker registration (only on https) */
+
 if('serviceWorker' in navigator && location.protocol==='https:'){
   navigator.serviceWorker.register('service-worker.js').catch(e=>console.warn('SW register failed',e));
 }
-// If anything throws unexpectedly, at least force the boot screen down so the UI is visible
+
 window.addEventListener('error',function(e){
   console.error('Global error:',e.message,e.filename,e.lineno);
-  var b=document.getElementById('boot');
-  if(b){b.style.display='none'}
+  var b=document.getElementById('boot'); if(b)b.style.display='none';
 });
-// Hard safety: force boot away after 5s no matter what
 setTimeout(function(){var b=document.getElementById('boot');if(b)b.style.display='none'},5000);
 </script>
 </body>
