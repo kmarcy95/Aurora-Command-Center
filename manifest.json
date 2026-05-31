@@ -1,0 +1,26 @@
+{
+  "name": "Aurora — Marketing Agency Command Center",
+  "short_name": "Aurora",
+  "description": "Autonomous marketing agency for KM Consulting — 7 AI agents coordinating LinkedIn publishing, recruiter outreach, CRM, and analytics.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F5F5F5",
+  "theme_color": "#0F6CBD",
+  "orientation": "any",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='38' fill='%230F6CBD'/><text x='96' y='130' font-family='Segoe UI Variable, Segoe UI, sans-serif' font-weight='700' font-size='118' text-anchor='middle' fill='white' letter-spacing='-4'>A</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='102' fill='%230F6CBD'/><text x='256' y='350' font-family='Segoe UI Variable, Segoe UI, sans-serif' font-weight='700' font-size='318' text-anchor='middle' fill='white' letter-spacing='-12'>A</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"]
+}
