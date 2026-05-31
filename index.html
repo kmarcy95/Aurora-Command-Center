@@ -3617,4 +3617,14 @@ bootInit();
 if('serviceWorker' in navigator && location.protocol==='https:'){
   navigator.serviceWorker.register('service-worker.js').catch(e=>console.warn('SW register failed',e));
 }
-// If anything throws unexpectedly, at least force the boot screen down so t
+// If anything throws unexpectedly, at least force the boot screen down so the UI is visible
+window.addEventListener('error',function(e){
+  console.error('Global error:',e.message,e.filename,e.lineno);
+  var b=document.getElementById('boot');
+  if(b){b.style.display='none'}
+});
+// Hard safety: force boot away after 5s no matter what
+setTimeout(function(){var b=document.getElementById('boot');if(b)b.style.display='none'},5000);
+</script>
+</body>
+</html>
