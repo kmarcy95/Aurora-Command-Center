@@ -1158,6 +1158,7 @@ const DEFAULTS = {
   ],
   campaigns: [],
   notifications: [],
+  feed: [],
   audit: [],
   ideas: [],
   crmContacts: [],
@@ -1207,10 +1208,16 @@ function loadState(){
     if(!Array.isArray(merged.crmContacts)) merged.crmContacts = base.crmContacts;
     if(!Array.isArray(merged.visits)) merged.visits = base.visits;
     if(!Array.isArray(merged.ideas)) merged.ideas = [];
+    if(!Array.isArray(merged.feed)) merged.feed = [];
     return merged;
   }catch(e){console.error('loadState failed, using defaults',e);return JSON.parse(JSON.stringify(DEFAULTS))}
 }
 function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch(e){}}
+/* esc() — HTML-escape any dynamic/external value before it goes into innerHTML.
+   Use for anything sourced from user input, the CRM, the inbox, LLM output,
+   webhook payloads, or the Plausible API. Static/internal strings don't need it,
+   but escaping them is harmless. */
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 const state = loadState();
 /* Canonical agent palette — balanced blue / teal / purple / green. Re-applied each load so colors stay on-brand. */
 const AGENT_COLORS = {orch:'#0F6CBD',strat:'#8764B8',content:'#00B7C3',pub:'#107C10',out:'#8764B8',eng:'#107C10',anly:'#00B7C3'};
@@ -1289,7 +1296,7 @@ const SCHEDULE_RUNNERS = {
   publish: async (s)=>{
     const next = state.content.find(c=>c.status==='approved');
     if(!next){pushFeed({agent:'Vesper',icon:'📡',text:'No approved post ready to publish · skipping'});return}
-    pushFeed({agent:'Vesper',icon:'📡',text:`Publishing <b>${next.title}</b> to LinkedIn`});
+    pushFeed({agent:'Vesper',icon:'📡',text:`Publishing <b>${esc(next.title)}</b> to LinkedIn`});
     if(state.integrations.linkedin.connected){
       await publishToLinkedIn(next);
       next.status='published'; next.publishedAt=new Date().toISOString(); persist();
@@ -1305,6 +1312,7 @@ const SCHEDULE_RUNNERS = {
           const sys = KM_CONTEXT+"\n\nYou are Atlas. Write ONE personalized LinkedIn DM (90-120 words) to the recipient. Plain text only. Soft CTA to kmarcy95.github.io/business-landing-page.";
           const ctx = `Recipient: ${c.name}, ${c.role} at ${c.company}. Context: ${c.notes||'(no notes)'}`;
           const txt = await callLLM(sys, ctx, {maxTokens:400});
+          c.draft = txt; // keep the FULL generated draft so it survives reload and can be reviewed/sent
           c.timeline = c.timeline||[]; c.timeline.unshift({at:'just now',who:'Atlas',what:`Scheduled DM drafted (LLM): "${txt.slice(0,80)}..."`});
           if(c.status==='new') c.status='contacted';
           c.lastContact='just now';
@@ -1405,8 +1413,8 @@ function renderPersonaDD(){
   const dd = document.getElementById('personaDD');
   dd.innerHTML = state.personas.map(p=>`
     <div class="persona-opt ${p.id===state.currentPersona?'active':''}" onclick="switchPersona('${p.id}')">
-      <div class="pe-ico" style="background:linear-gradient(135deg,${p.accent},${p.accent}aa)">${p.emoji}</div>
-      <div class="pe-info"><div class="pe-name">${p.name}</div><div class="pe-sub">${p.audience}</div></div>
+      <div class="pe-ico" style="background:linear-gradient(135deg,${esc(p.accent)},${esc(p.accent)}aa)">${esc(p.emoji)}</div>
+      <div class="pe-info"><div class="pe-name">${esc(p.name)}</div><div class="pe-sub">${esc(p.audience)}</div></div>
       <span class="pe-check">✓</span>
     </div>`).join('') + `<div class="pe-foot"><div class="pe-add" onclick="openModal('addPersona')">＋ Add new persona</div></div>`;
 }
@@ -1611,11 +1619,11 @@ function renderInbox(){
       <div class="inbox-check ${selectedMsgs.has(m.id)?'checked':''}" onclick="event.stopPropagation();toggleSelect('${m.id}')"></div>
       <div class="inbox-body">
         <div class="inbox-meta">
-          <div class="inbox-from">${m.from} <span class="co">· ${m.co}</span></div>
-          <div class="inbox-time">${m.time}</div>
+          <div class="inbox-from">${esc(m.from)} <span class="co">· ${esc(m.co)}</span></div>
+          <div class="inbox-time">${esc(m.time)}</div>
         </div>
-        <div class="inbox-preview">${m.preview}</div>
-        <span class="inbox-tag tag-${m.tag}">${m.tag.toUpperCase()}</span>
+        <div class="inbox-preview">${esc(m.preview)}</div>
+        <span class="inbox-tag tag-${esc(m.tag)}">${esc(String(m.tag).toUpperCase())}</span>
       </div>`;
     r.onclick = ()=>openInboxMessage(m);
     inb.appendChild(r);
@@ -1678,7 +1686,7 @@ function renderAudit(){
   state.audit.slice(0,8).forEach(a=>{
     const r = document.createElement('div');
     r.className = 'audit-row';
-    r.innerHTML = `<span class="at">${a.at}</span><span class="who">${a.who}</span><span class="what">${a.what}</span>`;
+    r.innerHTML = `<span class="at">${esc(a.at)}</span><span class="who">${esc(a.who)}</span><span class="what">${esc(a.what)}</span>`;
     p.appendChild(r);
   });
 }
@@ -1696,7 +1704,8 @@ function renderNotifications(){
   state.notifications.forEach(n=>{
     const e = document.createElement('div');
     e.className = 'notif-item'+(n.unread?' unread':'');
-    e.innerHTML = `<div class="notif-icon">${n.icon}</div><div class="notif-body">${n.body}<div class="notif-time">${n.time} ago</div></div>`;
+    // NOTE: n.body may contain intentional markup. Callers MUST escapeHTML() untrusted interpolations.
+    e.innerHTML = `<div class="notif-icon">${n.icon}</div><div class="notif-body">${n.body}<div class="notif-time">${esc(n.time)} ago</div></div>`;
     e.onclick = ()=>{n.unread=false;persist();renderNotifications()};
     list.appendChild(e);
   });
@@ -1752,9 +1761,9 @@ function renderCRMPipeline(){
     contacts.slice(0,6).forEach(c=>{
       const initial = c.name.split(' ').map(p=>p[0]).slice(0,2).join('');
       inner += `<div class="crm-card" draggable="true" ondragstart="crmDragStart(event,'${c.id}')" ondragend="crmDragEnd(event)" onclick="openContact('${c.id}')">
-        <div class="cn">${c.name}</div>
-        <div class="cc">${c.role} · ${c.company}</div>
-        <div class="ctags">${(c.tags||[]).slice(0,3).map(t=>`<span class="ctag ${t==='hot'?'hot':t==='warm'?'warm':''}">${t}</span>`).join('')}</div>
+        <div class="cn">${esc(c.name)}</div>
+        <div class="cc">${esc(c.role)} · ${esc(c.company)}</div>
+        <div class="ctags">${(c.tags||[]).slice(0,3).map(t=>`<span class="ctag ${t==='hot'?'hot':t==='warm'?'warm':''}">${esc(t)}</span>`).join('')}</div>
       </div>`;
     });
     if(contacts.length>6) inner += `<div style="text-align:center;font-size:10px;color:var(--muted);margin-top:4px">+${contacts.length-6} more</div>`;
@@ -1796,7 +1805,7 @@ function renderVisits(){
         const isLinkedIn = /linkedin/i.test(src);
         r.style.borderLeft = isLinkedIn ? '3px solid var(--accent)' : '';
         r.innerHTML = `<div class="vdot" style="background:${isLinkedIn?'var(--accent)':'var(--muted)'}"></div>
-          <div class="vbody"><b>${src}</b><div class="vmeta"><span>👥 ${s.visitors} visitors</span></div></div>
+          <div class="vbody"><b>${esc(src)}</b><div class="vmeta"><span>👥 ${esc(s.visitors)} visitors</span></div></div>
           <span class="vsrc">${isLinkedIn?'LinkedIn':'External'}</span>`;
         list.appendChild(r);
       });
@@ -1812,7 +1821,7 @@ function renderVisits(){
         const r = document.createElement('div');
         r.className = 'visit-row';
         r.innerHTML = `<div class="vdot"></div>
-          <div class="vbody"><b>${p.page||'/'}</b><div class="vmeta"><span>📄 ${p.visitors} visitors</span></div></div>`;
+          <div class="vbody"><b>${esc(p.page||'/')}</b><div class="vmeta"><span>📄 ${esc(p.visitors)} visitors</span></div></div>`;
         list.appendChild(r);
       });
     }
@@ -1873,7 +1882,7 @@ function addContactFromInbox(msg){
   state.crmContacts.unshift({id, name:msg.from, company:msg.co.split(' — ')[0], role:'Recruiter', status:'contacted', source:'Inbox message', tags:[msg.tag], lastContact:msg.time, notes:msg.preview, timeline:[{at:msg.time+' ago',who:msg.from,what:'Sent inbound message'}]});
   persist();
   toast(`${msg.from} added to CRM`,'success');
-  pushNotif({icon:'👥',body:`<b>${msg.from}</b> added to CRM from inbox`});
+  pushNotif({icon:'👥',body:`<b>${esc(msg.from)}</b> added to CRM from inbox`});
 }
 
 /* ===== Insights engine ===== */
@@ -1964,7 +1973,7 @@ function renderInsights(){
 function renderAll(){
   renderAgents(); renderLeaderboard(); renderWorkflow();
   renderCalendar(); renderInbox(); renderSchedule();
-  renderAudit(); renderNotifications();
+  renderAudit(); renderNotifications(); renderFeed();
   renderCRMPipeline(); renderVisits(); renderInsights();
   document.getElementById('sbUrl').textContent = state.settings.landingUrl.replace(/^https?:\/\//,'');
   const sbT=document.getElementById('sbTarget'); if(sbT) sbT.textContent = state.settings.targetAudience || 'Senior Eng Recruiters';
@@ -2114,18 +2123,39 @@ function toast(msg, type){
   setTimeout(()=>{ el.style.transition='opacity .25s,transform .25s'; el.style.opacity='0'; el.style.transform='translateX(20px)'; setTimeout(()=>el.remove(),300); }, type==='error'?6000:type==='warn'?4500:3200);
 }
 
-function pushFeed(item){
-  const t = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+// Render a single stored feed record into the DOM (newest prepended).
+// NOTE: item.text may contain intentional markup (<b>, <br/>, <div>). Callers MUST escapeHTML() any
+// untrusted value they interpolate into it (content titles, contact names, API fields).
+function renderFeedItem(item, append){
+  if(!feed) return;
   const el = document.createElement('div');
   el.className = 'feed-item';
-  el.innerHTML = `<div class="feed-dot">${item.icon}</div><div class="feed-body"><b>${item.agent}</b> · ${item.text}<div class="feed-time">${t}</div></div>`;
-  feed.prepend(el);
+  el.innerHTML = `<div class="feed-dot">${item.icon}</div><div class="feed-body"><b>${esc(item.agent)}</b> · ${item.text}<div class="feed-time">${esc(item.time)}</div></div>`;
+  if(append) feed.appendChild(el); else feed.prepend(el);
   while(feed.children.length>25) feed.removeChild(feed.lastChild);
+}
+// pass ephemeral=true for demo-simulator output so it renders but is NOT saved (keeps fake data out of state)
+function pushFeed(item, ephemeral){
+  const rec = {icon:item.icon, agent:item.agent, text:item.text,
+    time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}), at:Date.now()};
+  if(!ephemeral){
+    state.feed = state.feed || [];
+    state.feed.unshift(rec);
+    if(state.feed.length>50) state.feed = state.feed.slice(0,50);
+    persist();
+  }
+  renderFeedItem(rec);
+}
+// Rebuild the activity stream from persisted state on load so generated activity survives a reload.
+function renderFeed(){
+  if(!feed) return;
+  feed.innerHTML='';
+  (state.feed||[]).slice(0,25).forEach(rec=>renderFeedItem(rec, true));
 }
 setInterval(()=>{
   if(state.paused) return;
   if(!state.settings.demoMode) return;
-  pushFeed(FEED_TEMPLATES[Math.floor(Math.random()*FEED_TEMPLATES.length)]);
+  pushFeed(FEED_TEMPLATES[Math.floor(Math.random()*FEED_TEMPLATES.length)], true);
   if(Math.random()<.45){
     const k = ['views','recruiters','reply','clicks'][Math.floor(Math.random()*4)];
     state.metrics[k] += Math.floor(Math.random()*3)+1;
@@ -2368,7 +2398,7 @@ const MODAL_RENDERS = {
     <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
     ${state.inbox.filter(m=>!m.archived).map(m=>`
       <div class="content-card" style="cursor:pointer" onclick="closeModal();setTimeout(()=>openInboxMessage(state.inbox.find(x=>x.id=='${m.id}')),100)">
-        <div style="flex:1"><div class="ti">${m.from} <span style="font-weight:400;color:var(--muted);font-size:11px">· ${m.co}</span></div><div class="meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px">${m.preview}</div></div>
+        <div style="flex:1"><div class="ti">${esc(m.from)} <span style="font-weight:400;color:var(--muted);font-size:11px">· ${esc(m.co)}</span></div><div class="meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px">${esc(m.preview)}</div></div>
         <span class="inbox-tag tag-${m.tag}">${m.tag.toUpperCase()}</span>
       </div>`).join('')}
     </div>`,
@@ -2382,7 +2412,7 @@ const MODAL_RENDERS = {
           <div class="kanban-cards" data-status="${s}">
           ${state.content.filter(c=>c.status===s).map(c=>`
             <div class="kanban-card" draggable="true" ondragstart="kanbanDragStart(event,'${c.id}')" ondragend="kanbanDragEnd(event)" onclick="editContent('${c.id}')">
-              <div class="kt">${c.title}</div>
+              <div class="kt">${esc(c.title)}</div>
               <div class="km">${c.scheduledFor||(c.publishedAt?'Published '+new Date(c.publishedAt).toLocaleDateString():'Not scheduled')}</div>
               ${s==='pending'?`<div style="display:flex;gap:4px;margin-top:6px"><button class="btn primary sm" style="flex:1;padding:4px 8px;font-size:10px" onclick="event.stopPropagation();approveAndSchedule('${c.id}')">Approve</button></div>`:''}
               ${s==='approved'?`<div style="display:flex;gap:4px;margin-top:6px"><button class="btn primary sm" style="flex:1;padding:4px 8px;font-size:10px;background:linear-gradient(135deg,var(--accent-2),var(--accent))" onclick="event.stopPropagation();publishNow('${c.id}')">📡 Publish now</button></div>`:''}
@@ -2396,8 +2426,8 @@ const MODAL_RENDERS = {
     <div class="field"><label>Status</label><select id="ctStatus"><option value="draft">Draft</option><option value="pending">Pending</option><option value="approved">Approved</option></select></div>
     <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="addContent()">Save</button></div>`,
   editContent:(c)=>`<h3 class="display">✏️ Edit post</h3>
-    <div class="field"><label>Title</label><input id="etTitle" value="${c.title}"/></div>
-    <div class="field"><label>Body</label><textarea id="etBody" style="min-height:140px">${c.body||''}</textarea></div>
+    <div class="field"><label>Title</label><input id="etTitle" value="${esc(c.title)}"/></div>
+    <div class="field"><label>Body</label><textarea id="etBody" style="min-height:140px">${esc(c.body||'')}</textarea></div>
     <div class="row2"><div class="field"><label>Status</label><select id="etStatus"><option value="draft" ${c.status==='draft'?'selected':''}>Draft</option><option value="pending" ${c.status==='pending'?'selected':''}>Pending</option><option value="approved" ${c.status==='approved'?'selected':''}>Approved</option></select></div>
     <div class="field"><label>Scheduled for</label><input id="etSched" value="${c.scheduledFor||''}" placeholder="e.g. Wed 9:14 AM"/></div></div>
     <div style="display:flex;gap:10px;margin-top:18px;justify-content:space-between"><button class="btn danger" onclick="deleteContent('${c.id}')">Delete</button><div style="display:flex;gap:8px"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveContent('${c.id}')">Save</button></div></div>`,
@@ -2405,7 +2435,7 @@ const MODAL_RENDERS = {
     <button class="btn primary sm" style="margin-top:6px" onclick="openModal('newCampaign')">＋ New campaign</button>
     <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
     ${state.campaigns.map(c=>`<div class="content-card">
-        <div style="flex:1"><div class="ti">${c.name}</div><div class="meta">Day ${c.day} · ${c.contacts} contacts · ${c.replyRate}% reply</div></div>
+        <div style="flex:1"><div class="ti">${esc(c.name)}</div><div class="meta">Day ${c.day} · ${c.contacts} contacts · ${c.replyRate}% reply</div></div>
         <div style="display:flex;gap:6px;align-items:center"><span class="status-tag ${c.state==='running'?'st-running':'st-paused'}">${c.state==='running'?'● Running':'⏸ Paused'}</span><button class="btn ghost sm" onclick="toggleCampaign('${c.id}')">${c.state==='running'?'Pause':'Resume'}</button><button class="btn danger sm" onclick="deleteCampaign('${c.id}')">×</button></div>
       </div>`).join('')}
     </div>`,
@@ -2507,10 +2537,10 @@ const MODAL_RENDERS = {
     <div class="audit" style="margin-top:14px;max-height:520px">
     ${state.audit.map(a=>`<div class="audit-row"><span class="at">${a.at}</span><span class="who">${a.who}</span><span class="what">${a.what}</span></div>`).join('')}
     </div>`,
-  inboxOpen:(m)=>`<h3 class="display">📧 ${m.from} <span style="font-size:12px;color:var(--muted);font-weight:400">· ${m.co}</span></h3>
-    <p style="color:var(--muted);font-size:11px;margin-top:4px">${m.time} ago · <span class="inbox-tag tag-${m.tag}">${m.tag.toUpperCase()}</span></p>
-    <div style="margin-top:12px;padding:14px;background:var(--panel-2);border:1px solid var(--border);border-radius:11px;font-size:13px;line-height:1.6">${m.preview}</div>
-    ${m.thread&&m.thread.length?`<div style="margin-top:10px;padding:12px;background:var(--bg);border-left:2px solid var(--accent);border-radius:8px;font-size:12.5px;line-height:1.5"><b style="color:var(--accent);font-family:'Space Grotesk',sans-serif">You replied:</b><br/>${m.thread[m.thread.length-1]}</div>`:''}
+  inboxOpen:(m)=>`<h3 class="display">📧 ${esc(m.from)} <span style="font-size:12px;color:var(--muted);font-weight:400">· ${esc(m.co)}</span></h3>
+    <p style="color:var(--muted);font-size:11px;margin-top:4px">${esc(m.time)} ago · <span class="inbox-tag tag-${esc(m.tag)}">${esc(String(m.tag).toUpperCase())}</span></p>
+    <div style="margin-top:12px;padding:14px;background:var(--panel-2);border:1px solid var(--border);border-radius:11px;font-size:13px;line-height:1.6">${esc(m.preview)}</div>
+    ${m.thread&&m.thread.length?`<div style="margin-top:10px;padding:12px;background:var(--bg);border-left:2px solid var(--accent);border-radius:8px;font-size:12.5px;line-height:1.5"><b style="color:var(--accent);font-family:'Space Grotesk',sans-serif">You replied:</b><br/>${esc(m.thread[m.thread.length-1])}</div>`:''}
     <div class="field"><label>Quick replies</label>
       <div class="reply-stack">
         <div class="reply-row" onclick="useReply(this,'Thanks for reaching out! I&apos;d love to chat — does Tue or Wed afternoon work?')">👋 Available Tue/Wed afternoon</div>
@@ -2529,10 +2559,10 @@ const MODAL_RENDERS = {
       return `<div class="content-card" style="cursor:pointer" onclick="closeModal();setTimeout(()=>openContact('${c.id}'),100)">
         <div style="display:flex;gap:11px;align-items:center;flex:1;min-width:0">
           <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-3));display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;font-family:'Space Grotesk',sans-serif">${initial}</div>
-          <div style="min-width:0;flex:1"><div class="ti">${c.name}</div><div class="meta">${c.role} · ${c.company}</div></div>
+          <div style="min-width:0;flex:1"><div class="ti">${esc(c.name)}</div><div class="meta">${esc(c.role)} · ${esc(c.company)}</div></div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-          <span class="crm-stage-pill csp-${c.status}">${CRM_LABELS[c.status]}</span>
+          <span class="crm-stage-pill csp-${esc(c.status)}">${esc(CRM_LABELS[c.status])}</span>
           <span style="font-size:10px;color:var(--muted)" class="mono">${c.lastContact}</span>
         </div>
       </div>`;
@@ -2543,20 +2573,20 @@ const MODAL_RENDERS = {
     return `<div class="crm-detail-head">
       <div class="crm-avatar-lg">${initial}</div>
       <div class="crm-meta">
-        <div class="nm">${c.name} <span class="crm-stage-pill csp-${c.status}">${CRM_LABELS[c.status]}</span></div>
-        <div class="ro">${c.role} · ${c.company}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">Source: <b>${c.source}</b> · Last contact: <b>${c.lastContact}</b></div>
+        <div class="nm">${esc(c.name)} <span class="crm-stage-pill csp-${esc(c.status)}">${esc(CRM_LABELS[c.status])}</span></div>
+        <div class="ro">${esc(c.role)} · ${esc(c.company)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">Source: <b>${esc(c.source)}</b> · Last contact: <b>${esc(c.lastContact)}</b></div>
       </div>
     </div>
     <div class="row2" style="margin-top:14px"><div class="field"><label>Stage</label><select id="cnStatus">
       ${CRM_STAGES.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${CRM_LABELS[s]}</option>`).join('')}
     </select></div>
-    <div class="field"><label>Tags (comma-separated)</label><input id="cnTags" value="${(c.tags||[]).join(', ')}"/></div></div>
-    <div class="field"><label>LinkedIn profile URL</label><input id="cnLinkedin" value="${c.linkedinUrl||''}" placeholder="https://www.linkedin.com/in/their-handle/"/></div>
-    <div class="field"><label>Notes</label><textarea id="cnNotes" style="min-height:80px">${c.notes||''}</textarea></div>
+    <div class="field"><label>Tags (comma-separated)</label><input id="cnTags" value="${esc((c.tags||[]).join(', '))}"/></div></div>
+    <div class="field"><label>LinkedIn profile URL</label><input id="cnLinkedin" value="${esc(c.linkedinUrl||'')}" placeholder="https://www.linkedin.com/in/their-handle/"/></div>
+    <div class="field"><label>Notes</label><textarea id="cnNotes" style="min-height:80px">${esc(c.notes||'')}</textarea></div>
     <div class="field"><label>Interaction timeline</label>
       <div class="timeline">
-        ${(c.timeline||[]).map(t=>`<div class="tl-row"><span class="who">${t.who}</span><span class="at">${t.at}</span><div class="what">${t.what}</div></div>`).join('')}
+        ${(c.timeline||[]).map(t=>`<div class="tl-row"><span class="who">${esc(t.who)}</span><span class="at">${esc(t.at)}</span><div class="what">${esc(t.what)}</div></div>`).join('')}
       </div>
     </div>
     <div class="field"><label>Add interaction</label><input id="cnNew" placeholder="e.g. Sent thank-you email"/></div>
@@ -2569,20 +2599,24 @@ const MODAL_RENDERS = {
       </div>
     </div>`;
   },
-  composeDM:(c)=>`<h3 class="display">📨 Compose DM to ${c.name}</h3>
-    <p style="color:var(--muted);font-size:12.5px">${c.role} @ ${c.company} · ${c.linkedinUrl?'<span style="color:var(--green)">● LinkedIn URL on file</span>':'<span style="color:var(--amber)">⚠ No LinkedIn URL — add one below or a search opens instead</span>'}</p>
-    <div style="margin-top:12px;padding:11px;background:color-mix(in srgb,var(--accent) 8%,transparent);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:9px;font-size:11.5px"><b style="color:var(--accent);font-family:'Space Grotesk',sans-serif">⚡ Hybrid workflow:</b> Aurora copies this to your clipboard, opens ${c.name}'s LinkedIn profile in a new tab. You click their "Message" button, paste, send. CRM auto-updates the moment you click below.</div>
-    ${!c.linkedinUrl?`<div class="field"><label>LinkedIn profile URL (one-time setup)</label><input id="dmLinkedinUrl" placeholder="https://www.linkedin.com/in/their-handle/"/></div>`:''}
-    <div class="field"><label>Message (edit freely)</label><textarea id="dmBody" style="min-height:160px">Hi ${c.name.split(' ')[0]},
+  composeDM:(c)=>{
+    // Prefer a draft Atlas already generated (saved on the contact); otherwise build the default template.
+    const dmText = c.draft ? c.draft : `Hi ${String(c.name).split(' ')[0]},
 
 ${c.notes ? c.notes.split('.')[0]+'.' : 'Thanks for connecting!'} I'd love to chat about your work at ${c.company}.
 
-I'm Keystone — ERP consultant turned builder. D365 Finance &amp; Ops, AI workflows, Excel automation, agentic systems. Open to senior implementation, solutions-eng, and applied-AI roles plus select consulting work.
+I'm Keystone — ERP consultant turned builder. D365 Finance & Ops, AI workflows, Excel automation, agentic systems. Open to senior implementation, solutions-eng, and applied-AI roles plus select consulting work.
 
 Free for a quick 25-min call this week? You can see what I've shipped at https://kmarcy95.github.io/business-landing-page
 
 Cheers,
-Keystone</textarea></div>
+Keystone`;
+    return `<h3 class="display">📨 Compose DM to ${esc(c.name)}</h3>
+    <p style="color:var(--muted);font-size:12.5px">${esc(c.role)} @ ${esc(c.company)} · ${c.linkedinUrl?'<span style="color:var(--green)">● LinkedIn URL on file</span>':'<span style="color:var(--amber)">⚠ No LinkedIn URL — add one below or a search opens instead</span>'}</p>
+    ${c.draft?`<div style="margin-top:8px;font-size:11px;color:var(--accent)"><i class="ti ti-sparkles"></i> Loaded Atlas's saved draft — edit freely before sending.</div>`:''}
+    <div style="margin-top:12px;padding:11px;background:color-mix(in srgb,var(--accent) 8%,transparent);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:9px;font-size:11.5px"><b style="color:var(--accent);font-family:'Space Grotesk',sans-serif">⚡ Hybrid workflow:</b> Aurora copies this to your clipboard, opens ${esc(c.name)}'s LinkedIn profile in a new tab. You click their "Message" button, paste, send. CRM auto-updates the moment you click below.</div>
+    ${!c.linkedinUrl?`<div class="field"><label>LinkedIn profile URL (one-time setup)</label><input id="dmLinkedinUrl" placeholder="https://www.linkedin.com/in/their-handle/"/></div>`:''}
+    <div class="field"><label>Message (edit freely)</label><textarea id="dmBody" style="min-height:160px">${esc(dmText)}</textarea></div>
     <div style="display:flex;gap:10px;margin-top:14px;justify-content:space-between;flex-wrap:wrap">
       <button class="btn ghost" onclick="closeModal()">Cancel</button>
       <div style="display:flex;gap:8px">
@@ -2590,7 +2624,8 @@ Keystone</textarea></div>
         <button class="btn ghost" onclick="copyDMOnly('${c.id}')">📋 Copy only</button>
         <button class="btn primary" onclick="confirmSendDM('${c.id}')" style="background:linear-gradient(135deg,var(--accent),var(--accent-3));color:#fff">📨 Copy &amp; Open LinkedIn ▶</button>
       </div>
-    </div>`,
+    </div>`;
+  },
   addContact:(arg)=>{
     const p = arg && arg.prefill || {};
     return `<h3 class="display">＋ Add new contact</h3>
@@ -2743,7 +2778,7 @@ function saveAgent(id){
   a.status = document.getElementById('agStatus').value;
   persist(); renderAgents(); renderLeaderboard(); buildNetwork();
   addAudit(`Updated ${a.name}'s config`,'You');
-  pushNotif({icon:'⚙️',body:`<b>You</b> updated <b>${a.name}</b>`});
+  pushNotif({icon:'⚙️',body:`<b>You</b> updated <b>${esc(a.name)}</b>`});
   closeModal(); toast(`${a.name} saved`,'success');
 }
 function resetAgent(id){const def=DEFAULT_AGENTS.find(x=>x.id===id);const a=state.agents.find(x=>x.id===id);if(def&&a){Object.assign(a,JSON.parse(JSON.stringify(def)));persist();renderAgents();renderLeaderboard();buildNetwork();closeModal();toast(`${a.name} reset`,'info')}}
@@ -2834,7 +2869,7 @@ async function approveAndSchedule(id){
   persist();
   toast(`'${c.title}' approved`,'success');
   addAudit(`Approved post: ${c.title}`,'Director');
-  pushNotif({icon:'✓',body:`Post approved: <b>${c.title}</b>`});
+  pushNotif({icon:'✓',body:`Post approved: <b>${esc(c.title)}</b>`});
   if(state.integrations.linkedin.connected && confirm(`Publish "${c.title}" to LinkedIn right now?`)){
     await publishToLinkedIn(c);
     c.status='published'; persist();
@@ -2854,7 +2889,7 @@ function kanbanLeave(e){e.currentTarget.classList.remove('dragover')}
 function kanbanDrop(e){e.preventDefault();const status=e.currentTarget.dataset.status;const c=state.content.find(x=>x.id===dragId);if(c&&c.status!==status){c.status=status;persist();openModal('kanban');toast(`Moved to ${status}`,'success');addAudit(`Moved "${c.title}" → ${status}`,'You')}}
 
 /* ===== Campaign ===== */
-function launchCampaign(){const n=document.getElementById('cName').value.trim();if(!n)return toast('Name required','warn');state.campaigns.unshift({id:'cm'+Date.now(),name:n,state:'running',day:1,contacts:0,replyRate:0});persist();closeModal();toast(`Launched: ${n}`,'success');addAudit(`Launched: ${n}`,'You');pushNotif({icon:'🚀',body:`Campaign launched: <b>${n}</b>`});renderAll()}
+function launchCampaign(){const n=document.getElementById('cName').value.trim();if(!n)return toast('Name required','warn');state.campaigns.unshift({id:'cm'+Date.now(),name:n,state:'running',day:1,contacts:0,replyRate:0});persist();closeModal();toast(`Launched: ${n}`,'success');addAudit(`Launched: ${n}`,'You');pushNotif({icon:'🚀',body:`Campaign launched: <b>${esc(n)}</b>`});renderAll()}
 function toggleCampaign(id){const c=state.campaigns.find(x=>x.id===id);if(c){c.state=c.state==='running'?'paused':'running';persist();openModal('campaigns');toast(`Campaign ${c.state}`,'info')}}
 function deleteCampaign(id){state.campaigns=state.campaigns.filter(x=>x.id!==id);persist();openModal('campaigns');toast('Deleted','info');renderAll()}
 
@@ -2909,7 +2944,7 @@ function resetAll(){if(!confirm('Reset all data?'))return;localStorage.removeIte
 /* ===== Inbox ===== */
 function openInboxMessage(m){m.unread=false;persist();renderInbox();openModal('inboxOpen',m)}
 function useReply(el,text){document.getElementById('repBody').value=text;document.querySelectorAll('.reply-row').forEach(r=>r.style.background='');el.style.background='var(--panel-3)'}
-function sendReply(id){const m=state.inbox.find(x=>x.id===id);const body=document.getElementById('repBody').value.trim();if(!body)return toast('Type a reply','warn');m.thread=m.thread||[];m.thread.push(body);m.archived=true;addContactFromInbox(m);const c=state.crmContacts.find(x=>x.name===m.from);if(c){c.timeline=c.timeline||[];c.timeline.unshift({at:'just now',who:'You',what:'Sent reply via inbox'});if(c.status==='new')c.status='contacted'}persist();renderInbox();renderCRMPipeline();closeModal();toast(`Reply sent to ${m.from}`,'success');addAudit(`Replied: ${m.from}`,'Echo');pushNotif({icon:'✉️',body:`Reply sent to <b>${m.from}</b>`})}
+function sendReply(id){const m=state.inbox.find(x=>x.id===id);const body=document.getElementById('repBody').value.trim();if(!body)return toast('Type a reply','warn');m.thread=m.thread||[];m.thread.push(body);m.archived=true;addContactFromInbox(m);const c=state.crmContacts.find(x=>x.name===m.from);if(c){c.timeline=c.timeline||[];c.timeline.unshift({at:'just now',who:'You',what:'Sent reply via inbox'});if(c.status==='new')c.status='contacted'}persist();renderInbox();renderCRMPipeline();closeModal();toast(`Reply sent to ${m.from}`,'success');addAudit(`Replied: ${m.from}`,'Echo');pushNotif({icon:'✉️',body:`Reply sent to <b>${esc(m.from)}</b>`})}
 function archiveMsg(id){const m=state.inbox.find(x=>x.id===id);if(m){m.archived=true;persist();renderInbox();closeModal();toast('Archived','info')}}
 
 /* ===== Real Atlas outreach — fires the outreach webhook with personalized DM ===== */
@@ -2934,8 +2969,8 @@ async function sendOutreachReal(contact, customMessage){
     if(res.ok){
       toast(`✓ DM sent to ${contact.name} (${res.status})`,'success');
       addAudit(`Atlas DM sent: ${contact.name} @ ${contact.company}`,'Atlas');
-      pushNotif({icon:'🎯',body:`<b>Atlas</b> DMed <b>${contact.name}</b> @ ${contact.company}`});
-      pushFeed({agent:'Atlas',icon:'🎯',text:`Sent DM to <b>${contact.name}</b> @ ${contact.company}`});
+      pushNotif({icon:'🎯',body:`<b>Atlas</b> DMed <b>${esc(contact.name)}</b> @ ${esc(contact.company)}`});
+      pushFeed({agent:'Atlas',icon:'🎯',text:`Sent DM to <b>${esc(contact.name)}</b> @ ${esc(contact.company)}`});
       // Update CRM
       contact.lastContact = 'just now';
       if(contact.status==='new') contact.status='contacted';
@@ -3038,7 +3073,8 @@ async function testLLM(){
 
 const KM_CONTEXT = `Keystone Marcy runs KM Consulting (https://kmarcy95.github.io/business-landing-page). He's an ERP consultant turned builder — D365 Finance & Operations background, now ships Blazor apps, AI workflows, Excel automation, and agentic systems. Open to senior implementation, solutions-engineering, and applied-AI roles, plus select consulting. Voice: clear, technical, human, lightly opinionated, never corporate. No emojis at start of posts. Always end with a soft CTA to kmarcy95.github.io/business-landing-page when appropriate.`;
 
-function escapeHTML(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c])}
+/* escapeHTML — kept for existing call sites; delegates to esc() (handles numbers/null safely). */
+function escapeHTML(s){return esc(s)}
 
 /* ===== Real LinkedIn publisher — fires the configured Make.com webhook with actual content ===== */
 async function publishToLinkedIn(post, kind){
@@ -3061,8 +3097,8 @@ async function publishToLinkedIn(post, kind){
     if(res.ok){
       toast(`✓ Published to LinkedIn (${res.status})`,'success');
       addAudit(`Published to LinkedIn: ${post.title}`,'Vesper');
-      pushNotif({icon:'📡',body:`<b>Vesper</b> published: <i>${post.title}</i>`});
-      pushFeed({agent:'Vesper',icon:'📡',text:`Posted to LinkedIn: <b>${post.title}</b>`});
+      pushNotif({icon:'📡',body:`<b>Vesper</b> published: <i>${esc(post.title)}</i>`});
+      pushFeed({agent:'Vesper',icon:'📡',text:`Posted to LinkedIn: <b>${esc(post.title)}</b>`});
       return true;
     } else {
       toast(`Webhook ${res.status} · check Make.com logs`,'error');
@@ -3088,7 +3124,7 @@ function promoteAB(id,which){
   const t=state.abTests.find(x=>x.id===id); if(!t)return;
   t.winner=which; t.status='completed';
   persist(); openModal('abtests'); toast(`Variant ${which} promoted as winner`,'success');
-  pushNotif({icon:'🏆',body:`A/B winner: <b>Variant ${which}</b> for "${t.title}"`});
+  pushNotif({icon:'🏆',body:`A/B winner: <b>Variant ${esc(which)}</b> for "${esc(t.title)}"`});
   addAudit(`A/B winner: ${which} (${t.title})`,'You');
 }
 function deleteAB(id){state.abTests=state.abTests.filter(x=>x.id!==id);persist();openModal('abtests');toast('Test deleted','info');document.getElementById('navAB').textContent=state.abTests.length}
@@ -3113,7 +3149,7 @@ function createPersona(){
   state.personas.push(p); persist(); closeModal(); renderPersonaDD();
   toast(`Persona '${name}' created`,'success');
   addAudit(`Created persona: ${name}`,'You');
-  pushNotif({icon:'👤',body:`New persona: <b>${name}</b>`});
+  pushNotif({icon:'👤',body:`New persona: <b>${esc(name)}</b>`});
 }
 
 /* ===== Generate digest now (in-browser composition) ===== */
@@ -3231,7 +3267,7 @@ async function saveEmailDigest(){
   pushNotif({icon:'📧',body:`Daily digest scheduled for <b>${state.integrations.email.digestTime}</b>`});
   // Add to schedule list
   state.schedules.unshift({id:'s'+Date.now(),when:`${state.integrations.email.digestFreq==='daily'?'Daily':'Mon'} ${state.integrations.email.digestTime}`,what:`Send Aurora digest to ${state.integrations.email.address}`,on:true});
-  renderSchedule();
+  persist(); renderSchedule();
 }
 
 /* ===== Integrations ===== */
@@ -3322,7 +3358,7 @@ function addContact(){
     notes: document.getElementById('acNotes').value,
     timeline: [{at:'just now',who:'You',what:'Contact added to CRM'}]
   });
-  persist(); renderCRMPipeline(); closeModal(); toast(`${name} added to CRM`,'success'); addAudit(`Added CRM contact: ${name}`,'You'); pushNotif({icon:'👥',body:`<b>${name}</b> @ ${company} added to CRM`});
+  persist(); renderCRMPipeline(); closeModal(); toast(`${name} added to CRM`,'success'); addAudit(`Added CRM contact: ${name}`,'You'); pushNotif({icon:'👥',body:`<b>${esc(name)}</b> @ ${esc(company)} added to CRM`});
 }
 
 /* ===== REAL Plausible analytics fetcher ===== */
@@ -3411,7 +3447,7 @@ setInterval(()=>{
     state.visits.unshift({id:'v'+Date.now(),when:'just now',time:Date.now(),visitor:t.visitor,city:t.city,source:t.source,pages:Math.floor(Math.random()*5)+1,duration:`${Math.floor(Math.random()*8)+1}m ${Math.floor(Math.random()*60).toString().padStart(2,'0')}s`});
     state.visits = state.visits.slice(0,40);
     persist(); renderVisits();
-    pushFeed({agent:"Nova",icon:"🌐",text:`New visit from <b>${t.city}</b> · source: ${t.source}`});
+    pushFeed({agent:"Nova",icon:"🌐",text:`New visit from <b>${esc(t.city)}</b> · source: ${esc(t.source)}`}, true);
     if(Math.random()<.18){
       pushNotif({icon:'🌐',body:`New page visit from <b>${t.city}</b>`});
     }
@@ -3445,8 +3481,8 @@ async function confirmSendDM(contactId){
   if(c.status==='new') c.status='contacted';
   persist(); renderCRMPipeline();
   addAudit(`Atlas drafted DM: ${c.name}`,'Atlas');
-  pushNotif({icon:'📨',body:`<b>Atlas</b> drafted DM for <b>${c.name}</b> · pasted &amp; LinkedIn opened`});
-  pushFeed({agent:'Atlas',icon:'📨',text:`Drafted DM for <b>${c.name}</b> @ ${c.company} · copy in clipboard · LinkedIn opened in new tab`});
+  pushNotif({icon:'📨',body:`<b>Atlas</b> drafted DM for <b>${esc(c.name)}</b> · pasted &amp; LinkedIn opened`});
+  pushFeed({agent:'Atlas',icon:'📨',text:`Drafted DM for <b>${esc(c.name)}</b> @ ${esc(c.company)} · copy in clipboard · LinkedIn opened in new tab`});
   closeModal();
   toast(`📋 Copied · LinkedIn opened · paste & send`,'success');
 }
@@ -3474,7 +3510,7 @@ async function copyDMOnly(contactId){
 }
 
 /* ===== Quick capture ===== */
-function saveIdea(){const t=document.getElementById('qcBody').value.trim();if(!t)return toast('Empty idea','warn');state.ideas.unshift({text:t,at:new Date().toLocaleString()});persist();closeModal();toast('Idea saved · routed to Lyra','success');pushNotif({icon:'💡',body:`New idea captured: <i>"${t.slice(0,50)}..."</i>`});addAudit('Captured an idea','You')}
+function saveIdea(){const t=document.getElementById('qcBody').value.trim();if(!t)return toast('Empty idea','warn');state.ideas.unshift({text:t,at:new Date().toLocaleString()});persist();closeModal();toast('Idea saved · routed to Lyra','success');pushNotif({icon:'💡',body:`New idea captured: <i>"${esc(t.slice(0,50))}..."</i>`});addAudit('Captured an idea','You')}
 
 /* ===== Export / Import ===== */
 function exportState(){
@@ -3641,7 +3677,7 @@ function renderPalette(q){
     if(a.sec!==last){const h=document.createElement('div');h.className='palette-section';h.textContent=a.sec;res.appendChild(h);last=a.sec}
     const e=document.createElement('div');
     e.className='palette-item'+(i===palSel?' sel':''); e.dataset.idx=i;
-    e.innerHTML=`<span class="ico">${a.icon}</span>${a.label}${a.desc?'<span class="desc">'+a.desc+'</span>':''}`;
+    e.innerHTML=`<span class="ico">${a.icon}</span>${esc(a.label)}${a.desc?'<span class="desc">'+esc(a.desc)+'</span>':''}`;
     e.onclick=()=>{a.act();closePalette()};
     res.appendChild(e);
   });
@@ -3675,7 +3711,7 @@ function sendCommand(){
   const v = document.getElementById('cmdInput').value.trim();
   if(!v) return toast('Type a command','warn');
   const low = v.toLowerCase();
-  pushFeed({agent:"You",icon:"🎙️",text:`Command: <b>${v.length>60?v.slice(0,60)+'…':v}</b>`});
+  pushFeed({agent:"You",icon:"🎙️",text:`Command: <b>${esc(v.length>60?v.slice(0,60)+'…':v)}</b>`});
   addAudit(`Command: ${v.slice(0,80)}`,'You');
   document.getElementById('cmdInput').value='';
   let intent = 'general';
