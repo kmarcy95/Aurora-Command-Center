@@ -2704,8 +2704,8 @@ Keystone`;
     </div>
     <div class="int-card">
       <div class="int-h"><div class="int-title">📬 Digest config</div><div class="int-status ${state.integrations.email.connected?'on':'off'}">${state.integrations.email.connected?'✓ Active':'Off'}</div></div>
-      <div class="row2"><div class="field"><label>Email address</label><input id="edAddr" value="${state.integrations.email.address}"/></div>
-      <div class="field"><label>Send time (24h)</label><input id="edTime" value="${state.integrations.email.digestTime}" placeholder="08:00"/></div></div>
+      <div class="row2"><div class="field"><label>Email address</label><input id="edAddr" value="${esc(state.integrations.email.address)}"/></div>
+      <div class="field"><label>Send time (24h)</label><input id="edTime" value="${esc(state.integrations.email.digestTime)}" placeholder="08:00"/></div></div>
       <div class="row2"><div class="field"><label>Frequency</label><select id="edFreq"><option value="daily" ${state.integrations.email.digestFreq==='daily'?'selected':''}>Daily</option><option value="weekly" ${state.integrations.email.digestFreq==='weekly'?'selected':''}>Weekly (Mon)</option></select></div>
       <div class="field"><label>Include</label><select id="edInc" multiple style="min-height:90px"><option value="metrics" ${state.integrations.email.includeSections.includes('metrics')?'selected':''}>Weekly metrics</option><option value="crm" ${state.integrations.email.includeSections.includes('crm')?'selected':''}>CRM updates</option><option value="inbox" ${state.integrations.email.includeSections.includes('inbox')?'selected':''}>New inbox messages</option><option value="agents" ${state.integrations.email.includeSections.includes('agents')?'selected':''}>Agent activity</option><option value="visits" ${state.integrations.email.includeSections.includes('visits')?'selected':''}>Page visits</option></select></div></div>
       <div class="int-help" style="margin-top:10px">💡 Saving here will create a scheduled task via the <code>scheduled-tasks</code> MCP that fires daily at your chosen time. When it fires, Claude composes the digest from your current state and sends it via Gmail (requires Gmail integration). <a href="#" onclick="event.preventDefault();openModal('integrations')">Connect Gmail →</a></div>
@@ -2718,9 +2718,9 @@ Keystone`;
       <div class="int-h"><div class="int-title">💼 LinkedIn</div><div class="int-status ${state.integrations.linkedin.connected?'on':'off'}">${state.integrations.linkedin.connected?'✓ Connected':'Not connected'}</div></div>
       <div class="int-help">LinkedIn's official API requires partner approval. The realistic path: use a workflow tool like <a href="https://make.com" target="_blank">Make.com</a> or <a href="https://zapier.com" target="_blank">Zapier</a> with their LinkedIn integration. Create a webhook trigger there, then paste the webhook URL below. Aurora will POST your approved posts and outreach messages to that URL.</div>
       <div class="field"><label>Mode</label><select id="liMode"><option value="webhook" ${state.integrations.linkedin.mode==='webhook'?'selected':''}>Webhook (Make/Zapier)</option><option value="api" ${state.integrations.linkedin.mode==='api'?'selected':''}>Direct API token (partner only)</option></select></div>
-      <div class="field"><label>📡 Vesper publishing webhook (posts to LinkedIn)</label><input id="liWebhook" value="${state.integrations.linkedin.webhookUrl}" placeholder="https://hook.us2.make.com/abc123..."/></div>
-      <div class="field"><label>🎯 Atlas outreach webhook (sends LinkedIn DMs)</label><input id="liOutreachWebhook" value="${state.integrations.linkedin.outreachWebhookUrl||''}" placeholder="https://hook.us2.make.com/def456..."/></div>
-      <div class="field"><label>API token (if using direct API)</label><input id="liToken" type="password" value="${state.integrations.linkedin.apiToken}" placeholder="optional"/></div>
+      <div class="field"><label>📡 Vesper publishing webhook (posts to LinkedIn)</label><input id="liWebhook" value="${esc(state.integrations.linkedin.webhookUrl)}" placeholder="https://hook.us2.make.com/abc123..."/></div>
+      <div class="field"><label>🎯 Atlas outreach webhook (sends LinkedIn DMs)</label><input id="liOutreachWebhook" value="${esc(state.integrations.linkedin.outreachWebhookUrl||'')}" placeholder="https://hook.us2.make.com/def456..."/></div>
+      <div class="field"><label>API token (if using direct API)</label><input id="liToken" type="password" value="${esc(state.integrations.linkedin.apiToken)}" placeholder="optional"/></div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn primary sm" onclick="saveIntegration('linkedin')">Save</button><button class="btn ghost sm" onclick="testIntegration('linkedin')">Test publish (Vesper)</button><button class="btn ghost sm" onclick="testOutreach()">Test outreach (Atlas)</button></div>
     </div>
 
@@ -2728,16 +2728,16 @@ Keystone`;
       <div class="int-h"><div class="int-title">📊 Analytics</div><div class="int-status ${state.integrations.analytics.connected?'on':'off'}">${state.integrations.analytics.connected?'✓ Connected':'Not connected'}</div></div>
       <div class="int-help">Show real page-visit data instead of simulations. Choose your provider, then paste the credentials. <b>Plausible</b> is easiest (just add their script to kmarcy95.github.io/business-landing-page and create an API key in your dashboard). <b>GA4</b> needs a service account JSON.</div>
       <div class="field"><label>Provider</label><select id="anProvider"><option value="plausible" ${state.integrations.analytics.provider==='plausible'?'selected':''}>Plausible</option><option value="ga4" ${state.integrations.analytics.provider==='ga4'?'selected':''}>Google Analytics 4</option><option value="fathom" ${state.integrations.analytics.provider==='fathom'?'selected':''}>Fathom</option><option value="custom" ${state.integrations.analytics.provider==='custom'?'selected':''}>Custom JSON endpoint</option></select></div>
-      <div class="row2"><div class="field"><label>Domain</label><input id="anDomain" value="${state.integrations.analytics.domain}" placeholder="kmarcy95.github.io/business-landing-page"/></div>
-      <div class="field"><label>API key</label><input id="anKey" type="password" value="${state.integrations.analytics.apiKey}" placeholder="Your provider API key"/></div></div>
-      <div class="field" style="display:${state.integrations.analytics.provider==='ga4'?'flex':'none'}"><label>GA4 Property ID</label><input id="anProp" value="${state.integrations.analytics.ga4Property}" placeholder="123456789"/></div>
+      <div class="row2"><div class="field"><label>Domain</label><input id="anDomain" value="${esc(state.integrations.analytics.domain)}" placeholder="kmarcy95.github.io/business-landing-page"/></div>
+      <div class="field"><label>API key</label><input id="anKey" type="password" value="${esc(state.integrations.analytics.apiKey)}" placeholder="Your provider API key"/></div></div>
+      <div class="field" style="display:${state.integrations.analytics.provider==='ga4'?'flex':'none'}"><label>GA4 Property ID</label><input id="anProp" value="${esc(state.integrations.analytics.ga4Property)}" placeholder="123456789"/></div>
       <div style="display:flex;gap:6px;margin-top:8px"><button class="btn primary sm" onclick="saveIntegration('analytics')">Save</button><button class="btn ghost sm" onclick="testIntegration('analytics')">Fetch test data</button></div>
     </div>
 
     <div class="int-card">
       <div class="int-h"><div class="int-title">📧 Gmail</div><div class="int-status ${state.integrations.email.connected?'on':'off'}">${state.integrations.email.connected?'✓ Connected':'Not connected'}</div></div>
       <div class="int-help">Required for Echo to send real replies and for the daily Aurora digest. Connect via the Gmail MCP — Aurora uses it through Claude.</div>
-      <div class="field"><label>Address</label><input id="emAddr" value="${state.integrations.email.address}"/></div>
+      <div class="field"><label>Address</label><input id="emAddr" value="${esc(state.integrations.email.address)}"/></div>
       <div style="display:flex;gap:6px;margin-top:8px"><button class="btn primary sm" onclick="saveIntegration('email')">Save</button><button class="btn ghost sm" onclick="toast('Authenticating with Gmail...','info')">Connect Gmail</button></div>
     </div>
 
@@ -2748,18 +2748,18 @@ Keystone`;
       <div class="field"><label>Model</label><select id="llmModel">
         <option value="claude-haiku-4-5-20251001" ${state.integrations.llm.model==='claude-haiku-4-5-20251001'?'selected':''}>claude-haiku-4-5 · fast, cheap</option>
         <option value="claude-sonnet-4-6" ${state.integrations.llm.model==='claude-sonnet-4-6'?'selected':''}>claude-sonnet-4-6 · balanced</option>
-        <option value="claude-opus-4-6" ${state.integrations.llm.model==='claude-opus-4-6'?'selected':''}>claude-opus-4-6 · best quality</option>
+        <option value="claude-opus-4-8" ${state.integrations.llm.model==='claude-opus-4-8'?'selected':''}>claude-opus-4-8 · best quality</option>
         <option value="gpt-4o-mini" ${state.integrations.llm.model==='gpt-4o-mini'?'selected':''}>gpt-4o-mini · OpenAI fast</option>
         <option value="gpt-4o" ${state.integrations.llm.model==='gpt-4o'?'selected':''}>gpt-4o · OpenAI best</option>
       </select></div></div>
-      <div class="field"><label>API key</label><input id="llmKey" type="password" value="${state.integrations.llm.apiKey}" placeholder="${state.integrations.llm.provider==='anthropic'?'sk-ant-...':'sk-...'}"/></div>
+      <div class="field"><label>API key</label><input id="llmKey" type="password" value="${esc(state.integrations.llm.apiKey)}" placeholder="${state.integrations.llm.provider==='anthropic'?'sk-ant-...':'sk-...'}"/></div>
       <div style="display:flex;gap:6px;margin-top:8px"><button class="btn primary sm" onclick="saveIntegration('llm')">Save</button><button class="btn ghost sm" onclick="testLLM()">Test prompt</button></div>
     </div>
 
     <div class="int-card">
       <div class="int-h"><div class="int-title">🐦 Twitter/X</div><div class="int-status ${state.integrations.twitter.connected?'on':'off'}">${state.integrations.twitter.connected?'✓ Connected':'Not connected'}</div></div>
       <div class="int-help">Optional cross-posting. Requires X API Premium subscription ($200/mo) for posting. Or use a webhook (Buffer/Hypefury).</div>
-      <div class="field"><label>API key or webhook</label><input id="twKey" type="password" value="${state.integrations.twitter.apiKey}"/></div>
+      <div class="field"><label>API key or webhook</label><input id="twKey" type="password" value="${esc(state.integrations.twitter.apiKey)}"/></div>
       <div style="display:flex;gap:6px;margin-top:8px"><button class="btn primary sm" onclick="saveIntegration('twitter')">Save</button></div>
     </div>`,
   quickCapture:()=>`<h3 class="display">💡 Quick capture</h3>
