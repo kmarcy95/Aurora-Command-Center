@@ -2101,6 +2101,19 @@ const FEED_TEMPLATES = [
   {agent:"Athena",icon:"🧭",text:"Recommending pivot to <b>AI infra theme</b> next week"}
 ];
 const feed = document.getElementById('feed');
+/* ===== Toast notifications (slide-in bottom-right) ===== */
+function toast(msg, type){
+  type = type || 'info';
+  const stack = document.getElementById('toastStack');
+  if(!stack){ console.log('[toast]',msg); return; }
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type==='success'?'success':type==='error'?'error':type==='warn'?'warn':'');
+  const icon = type==='success'?'✓':type==='error'?'✕':type==='warn'?'⚠':'●';
+  el.innerHTML = `<span style="font-weight:700;font-size:14px">${icon}</span><span>${msg}</span>`;
+  stack.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .25s,transform .25s'; el.style.opacity='0'; el.style.transform='translateX(20px)'; setTimeout(()=>el.remove(),300); }, type==='error'?6000:type==='warn'?4500:3200);
+}
+
 function pushFeed(item){
   const t = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const el = document.createElement('div');
@@ -3699,20 +3712,20 @@ function bootInit(){
   try{renderAll()}catch(e){console.error('renderAll',e)}
   try{setLayout(state.layout||'default')}catch(e){console.error('setLayout',e)}
   setTimeout(()=>{try{drawChart()}catch(e){console.error('drawChart',e)}},140);
-  try{if(localStorage.getItem('aurora-hint')==='0') document.getElementById('hintBanner').style.display='none'}catch(e){}
-  try{if(!localStorage.getItem('aurora-toured')){setTimeout(()=>{toast('💡 New here? Click ❓ in the topbar for a guided tour','info');localStorage.setItem('aurora-toured','1')},2400)}}catch(e){}
+  try{if(localStorage.getItem("aurora-hint")==="0") document.getElementById("hintBanner").style.display="none"}catch(e){}
+  try{if(!localStorage.getItem("aurora-toured")){setTimeout(()=>{toast("Tip · Press Ctrl+K for the command palette","info");localStorage.setItem("aurora-toured","1")},2400)}}catch(e){}
 }
 bootInit();
 
-if('serviceWorker' in navigator && location.protocol==='https:'){
-  navigator.serviceWorker.register('service-worker.js').catch(e=>console.warn('SW register failed',e));
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  navigator.serviceWorker.register("service-worker.js").catch(e=>console.warn("SW register failed",e));
 }
 
-window.addEventListener('error',function(e){
-  console.error('Global error:',e.message,e.filename,e.lineno);
-  var b=document.getElementById('boot'); if(b)b.style.display='none';
+window.addEventListener("error",function(e){
+  console.error("Global error:",e.message,e.filename,e.lineno);
+  var b=document.getElementById("boot"); if(b)b.style.display="none";
 });
-setTimeout(function(){var b=document.getElementById('boot');if(b)b.style.display='none'},5000);
+setTimeout(function(){var b=document.getElementById("boot");if(b)b.style.display="none"},5000);
 </script>
 </body>
 </html>
