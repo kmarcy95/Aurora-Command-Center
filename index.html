@@ -397,6 +397,10 @@
 
   /* Skeleton shimmer */
   @keyframes shimmer{0%{background-position:-300px 0}100%{background-position:300px 0}}
+  .sk-shimmer,.sk-card,.sk-chart,.sk-line{background:linear-gradient(90deg,var(--panel-3) 0%,color-mix(in srgb,var(--accent) 12%,var(--panel-3)) 50%,var(--panel-3) 100%);background-size:600px 100%;animation:shimmer 1.6s linear infinite;border-radius:8px}
+  .sk-card{height:84px;border:1px solid var(--border)}
+  .sk-chart{height:340px;border:1px solid var(--border);margin:0}
+  .sk-line{height:12px;margin:7px 0;border-radius:6px}
   .sk-row{height:36px;background:linear-gradient(90deg,var(--panel-3) 0%,color-mix(in srgb,var(--accent) 12%,var(--panel-3)) 50%,var(--panel-3) 100%);background-size:600px 100%;animation:shimmer 1.6s linear infinite;border-radius:6px;margin-bottom:6px}
 
   /* Empty states */
@@ -1425,6 +1429,7 @@ document.documentElement.setAttribute('data-theme', state.theme);
 let inboxFilter = 'all';
 let selectedMsgs = new Set();
 let selectedInboxId = null;
+let analyticsLoading = false;
 
 setTimeout(()=>{document.getElementById('boot').classList.add('hide');setTimeout(()=>document.getElementById('boot').style.display='none',700)},1400);
 
@@ -2843,7 +2848,7 @@ const MODAL_RENDERS = {
     <div class="field"><label>Title / subject</label><input id="cmpTitle" placeholder="e.g. The thing nobody tells you about ERP rollouts"/></div>
     <div class="field"><label>Body</label><textarea id="cmpBody" style="min-height:150px" placeholder="Write here, or let AI draft it…"></textarea></div>
     <div style="display:flex;gap:10px;margin-top:16px;justify-content:space-between;flex-wrap:wrap">
-      <button class="btn ghost" onclick="composeDraftAI()"><i class="ti ti-sparkles"></i> Draft with AI</button>
+      <button class="btn ghost" onclick="composeDraftAI(this)"><i class="ti ti-sparkles"></i> Draft with AI</button>
       <div style="display:flex;gap:8px"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="composeSave()">Save draft</button></div>
     </div>`,
   addSchedule:()=>`<h3 class="display">＋ Add scheduled task</h3>
@@ -2898,7 +2903,12 @@ const MODAL_RENDERS = {
       <div class="field"><label>Type</label><select id="apType"><option value="">Content</option><option value="out">Outreach</option><option value="eng">Engagement / meeting</option><option value="act">Action</option></select></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end"><button class="btn ghost" onclick="reopenDay(${arg.idx},${arg.dayNum})">Cancel</button><button class="btn primary" onclick="saveAppt(${arg.idx},${arg.dayNum})">Add appointment</button></div>`,
-  analytics:()=>`<h3 class="display">📈 Analytics deep-dive</h3>
+  analytics:()=>{
+    if(analyticsLoading) return `<h3 class="display">📈 Analytics deep-dive</h3>
+      <p style="color:var(--text-2);font-size:13px;margin:6px 0 0"><span class="q-spin" style="vertical-align:-1px"></span> Pulling live data from Plausible…</p>
+      <div class="pg-cards" style="margin-top:14px"><div class="sk-card"></div><div class="sk-card"></div><div class="sk-card"></div><div class="sk-card"></div></div>
+      <div class="panel" style="margin-top:16px"><div class="panel-head"><h2 class="title display">📊 Performance — last 30 days</h2></div><div class="sk-chart"></div></div>`;
+    return `<h3 class="display">📈 Analytics deep-dive</h3>
     <p style="color:var(--text-2);font-size:13px;margin:6px 0 0">Attribution and performance across your agents and channels.</p>
     <div class="pg-cards" style="margin-top:14px">
       <div class="an-stat"><div class="an-l">Top agent</div><div class="display an-v">Atlas (Outreach)</div><div class="an-d" style="color:var(--green)">${state.metrics.reply}% reply rate</div></div>
@@ -2909,7 +2919,8 @@ const MODAL_RENDERS = {
     <div class="panel" style="margin-top:16px">
       <div class="panel-head"><h2 class="title display">📊 Performance — last 30 days</h2><span style="font-size:12px;color:var(--text-2)">Profile views · recruiter contacts · landing clicks</span></div>
       <div class="bigchart" style="height:340px"><canvas id="analyticsChart"></canvas></div>
-    </div>`,
+    </div>`;
+  },
   settings:()=>`<h3 class="display">⚙️ Settings</h3>
     <div class="pg-cols" style="margin-top:14px">
     <div class="field"><label>Brand voice</label><textarea id="sBrand" style="min-height:90px">${state.settings.brandVoice}</textarea></div>
@@ -3385,16 +3396,19 @@ document.addEventListener('keydown',e=>{
 });
 /* ===== Compose (new post / DM) ===== */
 function composeTypeChange(){ const w=document.getElementById('cmpToWrap'); if(w) w.style.display = document.getElementById('cmpType').value==='dm'?'':'none'; }
-async function composeDraftAI(){
+async function composeDraftAI(btn){
   if(!llmReady()) return toast('Connect an LLM in Integrations first','warn');
   const t=document.getElementById('cmpType').value, title=document.getElementById('cmpTitle').value.trim();
-  toast('Drafting with AI…','info');
+  const body=document.getElementById('cmpBody'); const orig=btn?btn.innerHTML:''; const ph=body?body.placeholder:'';
+  if(btn){btn.disabled=true; btn.innerHTML='<span class="q-spin"></span> Drafting…';}
+  if(body) body.placeholder='Drafting with AI…';
   try{
     let txt;
     if(t==='post'){ txt=await callLLM(KM_CONTEXT+"\n\nYou are Lyra. Write ONE LinkedIn post (120-200 words) in Keystone's voice. Plain text, hook first.", title||'Write a strong post about my recent work.', {maxTokens:400}); }
     else{ const c=state.crmContacts.find(x=>x.id===document.getElementById('cmpTo').value); txt=await callLLM(KM_CONTEXT+"\n\nYou are Atlas. Write ONE personalized 90-120 word LinkedIn DM. Plain text, soft CTA.", `Recipient: ${c?c.name+', '+c.role+' at '+c.company:'a recruiter'}.${c&&c.notes?' Context: '+c.notes:''}`, {maxTokens:300}); }
-    document.getElementById('cmpBody').value=String(txt).trim(); toast('Draft ready','success');
+    if(body) body.value=String(txt).trim(); toast('Draft ready','success');
   }catch(e){ toast('Draft failed: '+String(e.message||e).slice(0,80),'error'); }
+  finally{ if(btn){btn.disabled=false; btn.innerHTML=orig;} if(body) body.placeholder=ph; }
 }
 function composeSave(){
   const t=document.getElementById('cmpType').value, title=document.getElementById('cmpTitle').value.trim(), body=document.getElementById('cmpBody').value.trim();
@@ -3845,6 +3859,7 @@ async function fetchPlausibleData(silent){
     toast('Refreshing live data...','info');
     const vl=document.getElementById('visitsList');
     if(vl) vl.innerHTML='<div class="sk-row"></div><div class="sk-row" style="width:80%"></div><div class="sk-row" style="width:65%"></div>';
+    analyticsLoading=true; if(currentRoute==='analytics') route('analytics');
   }
   try{
     const [realtime, today, week, sources, pages, countries, timeseries] = await Promise.all([
@@ -3882,6 +3897,8 @@ async function fetchPlausibleData(silent){
     console.warn('Plausible fetch failed',e);
     if(!silent) toast('Plausible: '+e.message,'error');
     return false;
+  }finally{
+    if(analyticsLoading){ analyticsLoading=false; if(currentRoute==='analytics') route('analytics'); }
   }
 }
 async function refreshAnalytics(){await fetchPlausibleData(false)}
