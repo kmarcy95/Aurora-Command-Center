@@ -663,6 +663,26 @@
   .toggle.on{background:var(--accent);border-color:var(--accent)}
   .toggle.on::after{left:16px;background:#fff}
 
+  /* Schedule week grid */
+  .sch-tabs{display:inline-flex;gap:2px;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:3px;margin:8px 0 4px}
+  .sch-tab{font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;color:var(--muted);border:none;background:transparent}
+  .sch-tab.active{background:var(--accent);color:#fff}
+  .wk-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
+  .wk-col{background:var(--panel-2);border:1px solid var(--border);border-radius:9px;padding:6px;min-height:90px;display:flex;flex-direction:column;gap:5px}
+  .wk-col.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .wk-col-h{font-size:10.5px;font-weight:700;text-align:center;color:var(--text-2);font-family:var(--font-head);padding-bottom:3px;border-bottom:1px solid var(--border)}
+  .wk-col-h .dnum{display:block;font-size:9px;color:var(--muted);font-weight:500}
+  .wk-ev{display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:7px;font-size:10.5px;line-height:1.25;border-left:3px solid var(--accent);background:var(--panel)}
+  .wk-ev.off{opacity:.4;filter:grayscale(.6)}
+  .wk-ev .wt{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);flex-shrink:0}
+  .wk-ev .wn{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wk-empty{font-size:10px;color:var(--muted);text-align:center;margin:auto 0}
+  .wk-always{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding:10px;background:var(--panel-2);border:1px solid var(--border);border-radius:9px}
+  .mgr-pill{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;background:var(--panel);border:1px solid var(--border);font-size:11.5px}
+  .mgr-pill.off{opacity:.5}
+  .mgr-pill .mname{font-weight:600}
+  .mgr-pill .mrole{color:var(--muted);font-size:10px}
+
   .audit{display:flex;flex-direction:column;gap:5px;font-size:11px;max-height:200px;overflow:auto}
   .audit-row{display:flex;align-items:center;gap:8px;padding:7px 9px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px}
   .audit-row .at{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);flex-shrink:0}
@@ -1405,6 +1425,8 @@ function loadState(){
     if(!Array.isArray(merged.ideas)) merged.ideas = [];
     if(!Array.isArray(merged.feed)) merged.feed = [];
     if(!Array.isArray(merged.commandQueue)) merged.commandQueue = [];
+    // Each agent (manager) can be switched on/off from the Schedule week view; default ON.
+    if(Array.isArray(merged.agents)) merged.agents.forEach(a=>{ if(typeof a.active!=='boolean') a.active = true; });
     return merged;
   }catch(e){console.error('loadState failed, using defaults',e);return JSON.parse(JSON.stringify(DEFAULTS))}
 }
@@ -1555,6 +1577,12 @@ const SCHEDULE_RUNNERS = {
 };
 async function runScheduleAction(s){
   const kind = matchAction(s.what);
+  const owner = agentForKind(kind);
+  if(owner && owner.active===false){
+    pushFeed({agent:owner.name,icon:'⏸️',text:`${esc(owner.name)} is switched off — skipped "${esc(s.what)}". Re-enable in Schedule → Week.`});
+    addAudit(`Skipped (manager off): ${s.what}`, owner.name);
+    return;
+  }
   const runner = SCHEDULE_RUNNERS[kind] || SCHEDULE_RUNNERS.general;
   try{ await runner(s); state.scheduleLog[s.id] = new Date().toDateString(); persist(); renderSchedule(); }
   catch(e){ pushFeed({agent:'Director',icon:'⚠️',text:'Schedule failed: '+escapeHTML(e.message)}) }
@@ -1565,6 +1593,52 @@ function scheduleEngine(){
   state.schedules.filter(s=>s.on).forEach(s=>{ if(shouldRunNow(s,now)) runScheduleAction(s) });
 }
 setInterval(scheduleEngine, 30*1000); // check every 30s
+
+/* ===== Unified schedule parsing — understands both the human format ("Mon 6:00" / "Daily 9:14")
+   and simple 5-field cron (minute hour day month weekday) so the week view can plot everything. ===== */
+const DOW_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function expandCronDow(field){
+  if(field==='*'||field==null) return [0,1,2,3,4,5,6];
+  const out=new Set();
+  String(field).split(',').forEach(part=>{
+    const r=part.match(/^(\d+)-(\d+)$/);
+    if(r){ for(let i=+r[1];i<=+r[2];i++) out.add(i%7); }
+    else if(/^\d+$/.test(part)) out.add((+part)%7);
+  });
+  return [...out].sort((a,b)=>a-b);
+}
+/* Returns {cadence:'timed', days:[0-6], h, m} | {cadence:'continuous'|'manual', days:[]} | null. */
+function scheduleSlots(spec){
+  const s=String(spec||'').trim();
+  if(!s || /^(continuous|manual)$/i.test(s)) return {cadence: /manual/i.test(s)?'manual':'continuous', days:[], h:null, m:null};
+  const days={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+  const hm=s.toLowerCase().match(/^(daily|mon|tue|wed|thu|fri|sat|sun)\s+(\d{1,2}):(\d{2})$/);
+  if(hm){
+    const tok=hm[1];
+    return {cadence:'timed', days: tok==='daily'?[0,1,2,3,4,5,6]:[days[tok]], h:+hm[2], m:+hm[3]};
+  }
+  const c=s.split(/\s+/);
+  if(c.length===5){
+    if(c[0].startsWith('*/')||c[1]==='*') return {cadence:'continuous', days:[], h:null, m:null};
+    const m=parseInt(c[0],10), h=parseInt(c[1],10);
+    if(!isNaN(h)&&!isNaN(m)) return {cadence:'timed', days: expandCronDow(c[4]), h, m};
+  }
+  return null;
+}
+function fmtTime(h,m){ const am=h<12?'AM':'PM'; let hh=h%12; if(hh===0)hh=12; return hh+':'+String(m).padStart(2,'0')+' '+am; }
+function daysLabel(days){ if(!days||!days.length)return''; if(days.length===7)return'Daily'; if(days.length===5&&[1,2,3,4,5].every(d=>days.includes(d)))return'Weekdays'; return days.map(d=>DOW_SHORT[d]).join(', '); }
+/* Which agent (manager) owns a runner kind — lets switched-off managers skip their runs. */
+function agentForKind(kind){
+  const map={cycle:'Athena',strategy:'Athena',publish:'Vesper',outreach:'Atlas',inbox:'Echo',report:'Nova',digest:'Director',general:'Director'};
+  return state.agents.find(a=>a.name===(map[kind]||'Director'));
+}
+function toggleAgentActive(id){
+  const a=state.agents.find(x=>x.id===id); if(!a) return;
+  a.active = a.active===false; persist();
+  toast(`${a.icon} ${a.name} ${a.active?'enabled':'switched off'}`, a.active?'success':'warn');
+  addAudit(`${a.active?'Enabled':'Switched off'} manager: ${a.name}`,'You');
+  openModal('scheduleManager'); renderAgents&&renderAgents();
+}
 
 /* ===== Polish helpers ===== */
 function setDensity(d){
@@ -1881,6 +1955,40 @@ function renderSchedule(){
     list.appendChild(r);
   });
 }
+
+/* ===== Schedule WEEK VIEW — plots every manager's cadence + your tasks across Mon–Sun ===== */
+function setSchView(v){ state._schView=v; persist(); openModal('scheduleManager'); }
+/* Manager strip: one toggle per agent so you can decide which managers to use. */
+function managersStripHTML(){
+  return `<div class="wk-always">${state.agents.map(a=>{
+    const slot=scheduleSlots(a.schedule);
+    const cad = !slot ? (a.schedule||'manual')
+      : slot.cadence==='continuous' ? 'Continuous'
+      : slot.cadence==='manual' ? 'Manual'
+      : daysLabel(slot.days)+' · '+fmtTime(slot.h,slot.m);
+    const on=a.active!==false;
+    return `<div class="mgr-pill ${on?'':'off'}" style="border-left:3px solid ${a.color}">
+      <span style="font-size:15px">${a.icon}</span>
+      <span><span class="mname">${esc(a.name)}</span><br/><span class="mrole">${esc(a.role)} · ${esc(cad)}</span></span>
+      <div class="toggle ${on?'on':''}" title="Use this manager" onclick="toggleAgentActive('${a.id}')"></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function weekGridHTML(){
+  const order=[1,2,3,4,5,6,0]; // Mon..Sun
+  const todayDow=new Date().getDay();
+  // Build event list from agents (timed) + user tasks (timed). Continuous/manual live in the manager strip.
+  const evs=[];
+  state.agents.forEach(a=>{ const s=scheduleSlots(a.schedule); if(s&&s.cadence==='timed') evs.push({days:s.days,h:s.h,m:s.m,name:a.name,icon:a.icon,color:a.color,on:a.active!==false,onclick:`toggleAgentActive('${a.id}')`}); });
+  state.schedules.forEach(t=>{ const s=scheduleSlots(t.when); if(s&&s.cadence==='timed') evs.push({days:s.days,h:s.h,m:s.m,name:t.what,icon:'🗓️',color:'var(--accent-2)',on:t.on,onclick:`toggleSchedFromWeek('${t.id}')`}); });
+  const cols=order.map(dow=>{
+    const day=evs.filter(e=>e.days.includes(dow)).sort((x,y)=>(x.h*60+x.m)-(y.h*60+y.m));
+    const cells=day.length?day.map(e=>`<div class="wk-ev ${e.on?'':'off'}" style="border-left-color:${e.color}" title="${e.on?'Click to switch off':'Click to switch on'}" onclick="${e.onclick}"><span class="wt">${fmtTime(e.h,e.m)}</span><span class="wn">${e.icon} ${esc(e.name)}</span></div>`).join(''):'<div class="wk-empty">—</div>';
+    return `<div class="wk-col ${dow===todayDow?'today':''}"><div class="wk-col-h">${DOW_SHORT[dow]}</div>${cells}</div>`;
+  }).join('');
+  return `<div class="wk-grid">${cols}</div>`;
+}
+function toggleSchedFromWeek(id){ const s=state.schedules.find(x=>x.id===id); if(!s)return; s.on=!s.on; persist(); openModal('scheduleManager'); toast(s.on?'Task enabled':'Task paused',s.on?'success':'warn'); addAudit(`${s.on?'Enabled':'Paused'}: ${s.what}`,'You'); }
 
 function renderAudit(){
   const p = document.getElementById('auditPanel');
@@ -2814,14 +2922,27 @@ const MODAL_RENDERS = {
         <div style="display:flex;gap:6px;align-items:center"><span class="status-tag ${c.state==='running'?'st-running':'st-paused'}">${c.state==='running'?'● Running':'⏸ Paused'}</span><button class="btn ghost sm" onclick="toggleCampaign('${c.id}')">${c.state==='running'?'Pause':'Resume'}</button><button class="btn danger sm" onclick="deleteCampaign('${c.id}')">×</button></div>
       </div>`).join('')}
     </div>`,
-  scheduleManager:()=>`<h3 class="display">⏱️ Schedule manager</h3>
-    <button class="btn primary sm" style="margin-top:6px" onclick="openModal('addSchedule')">＋ Add task</button>
-    <div class="pg-cards" style="margin-top:14px">
-    ${state.schedules.map(s=>`<div class="content-card">
-        <div style="flex:1"><div class="ti">${s.what}</div><div class="meta mono">${s.when}</div></div>
-        <div style="display:flex;gap:6px;align-items:center"><div class="toggle ${s.on?'on':''}" onclick="toggleSched('${s.id}')"></div><button class="btn danger sm" onclick="deleteSched('${s.id}')">×</button></div>
-      </div>`).join('')}
-    </div>`,
+  scheduleManager:()=>{
+    const view = state._schView==='list' ? 'list' : 'week';
+    const list = `<div class="pg-cards" style="margin-top:14px">
+      ${state.schedules.length?state.schedules.map(s=>{
+        const slot=scheduleSlots(s.when);
+        const human=slot&&slot.cadence==='timed'?(daysLabel(slot.days)+' at '+fmtTime(slot.h,slot.m)):s.when;
+        return `<div class="content-card">
+          <div style="flex:1"><div class="ti">${esc(s.what)}</div><div class="meta">${esc(human)} <span class="mono" style="opacity:.55">· ${esc(s.when)}</span></div></div>
+          <div style="display:flex;gap:6px;align-items:center"><button class="btn ghost sm" title="Run now" onclick="runSchedById('${s.id}')"><i class="ti ti-player-play"></i></button><div class="toggle ${s.on?'on':''}" onclick="toggleSched('${s.id}')"></div><button class="btn danger sm" onclick="deleteSched('${s.id}')">×</button></div>
+        </div>`;}).join(''):'<p style="color:var(--muted);font-size:12px">No tasks yet — add one above.</p>'}
+    </div>`;
+    const week = `<p style="color:var(--muted);font-size:12px;margin-top:4px">Your whole work week at a glance — every manager's cadence plus your scheduled tasks. Toggle a manager to decide who's working; click any block to switch it on or off.</p>
+      ${managersStripHTML()}
+      ${weekGridHTML()}`;
+    return `<h3 class="display">⏱️ Schedule</h3>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="sch-tabs"><button class="sch-tab ${view==='week'?'active':''}" onclick="setSchView('week')">📅 Week view</button><button class="sch-tab ${view==='list'?'active':''}" onclick="setSchView('list')">☰ Task list</button></div>
+        <button class="btn primary sm" onclick="openModal('addSchedule')">＋ Add task</button>
+      </div>
+      ${view==='week'?week:list}`;
+  },
   queue:()=>`<h3 class="display">🎩 Director command queue</h3>
     <p style="color:var(--muted);font-size:12.5px">Natural-language commands route to the right agent and run for real. Status updates live. Without an LLM/Plausible key, tasks finish as <b>Needs setup</b> with guidance.</p>
     <div class="q-composer">
@@ -2839,22 +2960,53 @@ const MODAL_RENDERS = {
     <div class="q-list-head"><b>Queue</b><button class="btn ghost sm" onclick="clearDoneQueue()">Clear done</button></div>
     <div id="queuePageList"></div>`,
   compose:()=>`<h3 class="display">✍️ Compose</h3>
-    <p style="color:var(--muted);font-size:12.5px">Draft a LinkedIn post (Lyra) or a recruiter DM (Atlas). Use <b>Draft with AI</b> if an LLM is connected.</p>
-    <div class="field"><label>Type</label><select id="cmpType" onchange="composeTypeChange()">
-      <option value="post">LinkedIn post · Lyra</option>
-      <option value="dm">Recruiter DM · Atlas</option>
-    </select></div>
+    <p style="color:var(--muted);font-size:12.5px">Draft a LinkedIn post (Lyra) or a recruiter DM (Atlas). Pick a <b>tone</b>, optionally pull <b>AI-suggested angles</b>, then <b>Draft with AI</b> if an LLM is connected.</p>
+    <div class="row2">
+      <div class="field"><label>Type</label><select id="cmpType" onchange="composeTypeChange()">
+        <option value="post">LinkedIn post · Lyra</option>
+        <option value="dm">Recruiter DM · Atlas</option>
+      </select></div>
+      <div class="field"><label>Tone</label><select id="cmpTone">
+        <option value="Conversational / human — warm, first-person, like talking to a peer">Conversational / human</option>
+        <option value="Professional / authoritative — clear, credible, expert framing">Professional / authoritative</option>
+        <option value="Bold / opinionated — strong point of view, a contrarian hook, takes a stance">Bold / opinionated</option>
+        <option value="Storytelling / narrative — open with a scene or anecdote, build to a lesson">Storytelling / narrative</option>
+      </select></div>
+    </div>
     <div class="field" id="cmpToWrap" style="display:none"><label>Recipient (CRM contact)</label><select id="cmpTo">${state.crmContacts.length?state.crmContacts.map(c=>`<option value="${esc(c.id)}">${esc(c.name)} · ${esc(c.company)}</option>`).join(''):'<option value="">No contacts yet — add one in CRM</option>'}</select></div>
     <div class="field"><label>Title / subject</label><input id="cmpTitle" placeholder="e.g. The thing nobody tells you about ERP rollouts"/></div>
+    <div id="cmpSuggestWrap" style="margin:-4px 0 10px">
+      <button class="btn ghost sm" type="button" onclick="suggestTopics(this)"><i class="ti ti-trending-up"></i> Suggest trending angles</button>
+      <span style="color:var(--muted);font-size:10.5px;margin-left:6px">AI-suggested for your niche · click one to use it as the title</span>
+      <div id="cmpSuggest" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+    </div>
     <div class="field"><label>Body</label><textarea id="cmpBody" style="min-height:150px" placeholder="Write here, or let AI draft it…"></textarea></div>
     <div style="display:flex;gap:10px;margin-top:16px;justify-content:space-between;flex-wrap:wrap">
       <button class="btn ghost" onclick="composeDraftAI(this)"><i class="ti ti-sparkles"></i> Draft with AI</button>
       <div style="display:flex;gap:8px"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="composeSave()">Save draft</button></div>
     </div>`,
   addSchedule:()=>`<h3 class="display">＋ Add scheduled task</h3>
-    <div class="field"><label>Description</label><input id="sNew" placeholder="e.g. LinkedIn comment sweep"/></div>
-    <div class="field"><label>When</label><input id="sWhen" placeholder="e.g. Daily 10:00 or */15 * * * *"/></div>
-    <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="addSchedule()">Add</button></div>`,
+    <p style="color:var(--muted);font-size:12px">Pick what runs and when — Aurora routes it to the right manager automatically.</p>
+    <div class="field"><label>Task</label><select id="sType" onchange="schTypePreset()">
+      <option value="Weekly cycle kick-off">🧭 Weekly cycle kick-off · Athena</option>
+      <option value="Publish LinkedIn post">📡 Publish LinkedIn post · Vesper</option>
+      <option value="Outreach batch">🎯 Outreach batch · Atlas</option>
+      <option value="Inbox sweep">💬 Inbox sweep · Echo</option>
+      <option value="Weekly performance report">📊 Performance report · Nova</option>
+      <option value="Strategy refresh">🧭 Strategy refresh · Athena</option>
+      <option value="Daily digest">📧 Daily digest · Director</option>
+      <option value="__custom">✏️ Custom task…</option>
+    </select></div>
+    <div class="field"><label>Description</label><input id="sNew" value="Weekly cycle kick-off" placeholder="e.g. LinkedIn comment sweep"/></div>
+    <div class="row2">
+      <div class="field"><label>Frequency</label><select id="sFreq">
+        <option value="Daily">Every day</option>
+        <option value="Mon">Mondays</option><option value="Tue">Tuesdays</option><option value="Wed">Wednesdays</option><option value="Thu">Thursdays</option><option value="Fri">Fridays</option><option value="Sat">Saturdays</option><option value="Sun">Sundays</option>
+      </select></div>
+      <div class="field"><label>Time</label><input id="sTime" type="time" value="09:00"/></div>
+    </div>
+    <div class="int-help">Manager: <b id="sMgrHint">Athena</b> — toggle managers on or off in the Week view to control who actually runs.</div>
+    <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="addSchedule()">Add task</button></div>`,
   dayView:(arg)=>{
     const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const items = state.calendar[arg.idx]||[];
@@ -3319,7 +3471,24 @@ function deleteCampaign(id){state.campaigns=state.campaigns.filter(x=>x.id!==id)
 /* ===== Schedule ===== */
 function toggleSched(id){const s=state.schedules.find(x=>x.id===id);if(s){s.on=!s.on;persist();openModal('scheduleManager');renderSchedule();toast(s.on?'Enabled':'Paused',s.on?'success':'warn')}}
 function deleteSched(id){state.schedules=state.schedules.filter(x=>x.id!==id);persist();openModal('scheduleManager');renderSchedule();toast('Removed','info')}
-function addSchedule(){const w=document.getElementById('sNew').value.trim();const wh=document.getElementById('sWhen').value.trim()||'Daily 12:00';if(!w)return toast('Description required','warn');state.schedules.push({id:'s'+Date.now(),what:w,when:wh,on:true});persist();closeModal();renderSchedule();toast('Added','success')}
+function schTypePreset(){
+  const t=document.getElementById('sType').value, desc=document.getElementById('sNew'), hint=document.getElementById('sMgrHint');
+  if(desc){ if(t==='__custom'){ desc.value=''; desc.focus(); } else { desc.value=t; } }
+  if(hint){ const owner=agentForKind(matchAction(t==='__custom'?'':t)); hint.textContent=owner?owner.name:'Director'; }
+}
+function addSchedule(){
+  const w=document.getElementById('sNew').value.trim();
+  const freqEl=document.getElementById('sFreq'), timeEl=document.getElementById('sTime');
+  const freq=freqEl?freqEl.value:'Daily', time=(timeEl&&timeEl.value)||'09:00';
+  if(!w)return toast('Description required','warn');
+  const when=freq+' '+time; // human format the engine + week view both understand
+  state.schedules.push({id:'s'+Date.now(),what:w,when:when,on:true});
+  persist();closeModal();renderSchedule();
+  const owner=agentForKind(matchAction(w));
+  toast(`Added · ${freq==='Daily'?'every day':freq} at ${time}${owner?' · '+owner.name:''}`,'success');
+  addAudit('Added scheduled task: '+w,'You');
+}
+function runSchedById(id){const s=state.schedules.find(x=>x.id===id);if(s){runScheduleAction(s);toast('Running: '+s.what,'info')}}
 
 /* ===== Calendar ===== */
 function openCalDay(idx,dayNum){
@@ -3395,20 +3564,48 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='e'&&selectedInboxId){ archiveMsg(selectedInboxId); if(currentRoute==='inbox') route('inbox'); e.preventDefault(); }
 });
 /* ===== Compose (new post / DM) ===== */
-function composeTypeChange(){ const w=document.getElementById('cmpToWrap'); if(w) w.style.display = document.getElementById('cmpType').value==='dm'?'':'none'; }
+function composeTypeChange(){
+  const isDM = document.getElementById('cmpType').value==='dm';
+  const w=document.getElementById('cmpToWrap'); if(w) w.style.display = isDM?'':'none';
+  const sg=document.getElementById('cmpSuggestWrap'); if(sg) sg.style.display = isDM?'none':''; // trending angles are post-only
+}
+/* Read the chosen tone descriptor from the Compose modal (falls back to conversational). */
+function composeTone(){ const el=document.getElementById('cmpTone'); return el&&el.value ? el.value : 'Conversational / human — warm, first-person, like talking to a peer'; }
 async function composeDraftAI(btn){
   if(!llmReady()) return toast('Connect an LLM in Integrations first','warn');
   const t=document.getElementById('cmpType').value, title=document.getElementById('cmpTitle').value.trim();
+  const tone=composeTone();
   const body=document.getElementById('cmpBody'); const orig=btn?btn.innerHTML:''; const ph=body?body.placeholder:'';
   if(btn){btn.disabled=true; btn.innerHTML='<span class="q-spin"></span> Drafting…';}
   if(body) body.placeholder='Drafting with AI…';
   try{
     let txt;
-    if(t==='post'){ txt=await callLLM(KM_CONTEXT+"\n\nYou are Lyra. Write ONE LinkedIn post (120-200 words) in Keystone's voice. Plain text, hook first.", title||'Write a strong post about my recent work.', {maxTokens:400}); }
-    else{ const c=state.crmContacts.find(x=>x.id===document.getElementById('cmpTo').value); txt=await callLLM(KM_CONTEXT+"\n\nYou are Atlas. Write ONE personalized 90-120 word LinkedIn DM. Plain text, soft CTA.", `Recipient: ${c?c.name+', '+c.role+' at '+c.company:'a recruiter'}.${c&&c.notes?' Context: '+c.notes:''}`, {maxTokens:300}); }
+    if(t==='post'){ txt=await callLLM(KM_CONTEXT+`\n\nYou are Lyra. Write ONE LinkedIn post (120-200 words) in Keystone's voice. Tone: ${tone}. Plain text, hook first.`, title||'Write a strong post about my recent work.', {maxTokens:400}); }
+    else{ const c=state.crmContacts.find(x=>x.id===document.getElementById('cmpTo').value); txt=await callLLM(KM_CONTEXT+`\n\nYou are Atlas. Write ONE personalized 90-120 word LinkedIn DM. Tone: ${tone}. Plain text, soft CTA.`, `Recipient: ${c?c.name+', '+c.role+' at '+c.company:'a recruiter'}.${c&&c.notes?' Context: '+c.notes:''}`, {maxTokens:300}); }
     if(body) body.value=String(txt).trim(); toast('Draft ready','success');
   }catch(e){ toast('Draft failed: '+String(e.message||e).slice(0,80),'error'); }
   finally{ if(btn){btn.disabled=false; btn.innerHTML=orig;} if(body) body.placeholder=ph; }
+}
+/* Athena proposes timely, niche-specific post angles (AI-suggested — not live-scraped trends). */
+async function suggestTopics(btn){
+  if(!llmReady()) return toast('Connect an LLM in Integrations first','warn');
+  const wrap=document.getElementById('cmpSuggest'); if(!wrap) return;
+  const orig=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true; btn.innerHTML='<span class="q-spin"></span> Thinking…';}
+  wrap.innerHTML='<span style="color:var(--muted);font-size:11px">Generating angles…</span>';
+  try{
+    const sys=KM_CONTEXT+"\n\nYou are Athena, the strategist. Propose 5 timely, specific LinkedIn post angles Keystone could write THIS WEEK that would land with recruiters and consulting buyers. Lean into what's currently top-of-mind in ERP / D365, applied AI, and agentic systems. Each angle is a punchy title/hook under 12 words. Output ONLY the 5 titles, one per line — no numbering, no commentary.";
+    const txt=await callLLM(sys,'Give me this week\'s 5 angles.',{maxTokens:300});
+    const ideas=String(txt).split('\n').map(l=>l.replace(/^[\s\-\d\.\)•"]+/,'').replace(/"$/,'').trim()).filter(Boolean).slice(0,5);
+    if(!ideas.length){ wrap.innerHTML='<span style="color:var(--muted);font-size:11px">No angles returned — try again.</span>'; }
+    else{ wrap.innerHTML=ideas.map(t=>`<span class="chip" style="cursor:pointer" onclick="useTopic(this)">${esc(t)}</span>`).join(''); }
+    addAudit('Athena suggested '+ideas.length+' content angles','Athena');
+  }catch(e){ wrap.innerHTML=''; toast('Suggestions failed: '+String(e.message||e).slice(0,120),'error'); }
+  finally{ if(btn){btn.disabled=false; btn.innerHTML=orig;} }
+}
+function useTopic(el){
+  const t=document.getElementById('cmpTitle'); if(t){ t.value=el.textContent; t.focus(); }
+  document.querySelectorAll('#cmpSuggest .chip').forEach(c=>c.style.outline=''); el.style.outline='2px solid var(--accent)';
 }
 function composeSave(){
   const t=document.getElementById('cmpType').value, title=document.getElementById('cmpTitle').value.trim(), body=document.getElementById('cmpBody').value.trim();
@@ -3498,16 +3695,35 @@ async function testOutreach(){
 }
 
 /* ===== Real LLM call (Claude or OpenAI direct from browser) ===== */
+/* Turn a raw provider HTTP error into a clear, actionable message instead of a JSON dump. */
+function humanizeLLMError(provider, status, rawBody){
+  let detail = '';
+  try{ const j = JSON.parse(rawBody); detail = (j.error && (j.error.message||j.error.type)) || ''; }
+  catch(_){ detail = String(rawBody||'').slice(0,160); }
+  const who = provider==='anthropic' ? 'Anthropic' : 'OpenAI';
+  const hint = provider==='anthropic' ? 'sk-ant-…' : 'sk-…';
+  if(status===401 || /authentication|invalid.*api.?key|x-api-key/i.test(detail)){
+    return `${who} rejected your API key (401) — it's expired, revoked, pasted incompletely, or for the wrong provider. Fix: Integrations → paste a fresh ${hint} key → Save → Test key.`;
+  }
+  if(status===429) return `${who} rate-limited (429) — too many requests, or you're out of credits. Check your plan/credit balance, then retry.`;
+  if(status===400 && /credit|balance|quota/i.test(detail)) return `${who} reports no usable credit (400). Add credit in the ${who} console, then retry.`;
+  if(status===404 && /model/i.test(detail)) return `${who} doesn't recognize the model "${(state.integrations.llm&&state.integrations.llm.model)||''}" (404). Pick a valid model in Integrations.`;
+  return `${who} error ${status}: ${detail||'unknown error'}`;
+}
 async function callLLM(system, user, opts){
   opts = opts || {};
   const cfg = state.integrations.llm;
   if(!cfg || !cfg.apiKey) throw new Error('LLM not configured · open Integrations');
+  const key = String(cfg.apiKey).trim(); // defend against trailing newline/space from paste — a common 401 cause
+  if(cfg.provider === 'anthropic' && !/^sk-ant-/.test(key)){
+    throw new Error('That key doesn\'t look like an Anthropic key (Anthropic keys start with "sk-ant-"). If you pasted an OpenAI key, switch Provider to OpenAI in Integrations; otherwise paste a fresh key from console.anthropic.com.');
+  }
   if(cfg.provider === 'anthropic'){
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'x-api-key': cfg.apiKey,
+        'x-api-key': key,
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-direct-browser-access':'true'
       },
@@ -3518,21 +3734,21 @@ async function callLLM(system, user, opts){
         messages: [{role:'user', content: user}]
       })
     });
-    if(!res.ok){const t=await res.text();throw new Error('Claude '+res.status+': '+t.slice(0,180))}
+    if(!res.ok){const t=await res.text();throw new Error(humanizeLLMError('anthropic',res.status,t))}
     const data = await res.json();
     if(data.usage){state.llmTokensUsed=(state.llmTokensUsed||0)+((data.usage.input_tokens||0)+(data.usage.output_tokens||0)); persist();}
     return data.content && data.content[0] ? data.content[0].text : '';
   } else {
     const res = await fetch('https://api.openai.com/v1/chat/completions',{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
       body: JSON.stringify({
         model: cfg.model || 'gpt-4o-mini',
         max_tokens: opts.maxTokens || 1200,
         messages:[{role:'system',content:system},{role:'user',content:user}]
       })
     });
-    if(!res.ok){const t=await res.text();throw new Error('OpenAI '+res.status+': '+t.slice(0,180))}
+    if(!res.ok){const t=await res.text();throw new Error(humanizeLLMError('openai',res.status,t))}
     const data = await res.json();
     if(data.usage){state.llmTokensUsed=(state.llmTokensUsed||0)+(data.usage.total_tokens||0); persist();}
     return data.choices && data.choices[0] ? data.choices[0].message.content : '';
@@ -3772,10 +3988,21 @@ async function saveIntegration(type){
     state.integrations.twitter.apiKey = document.getElementById('twKey').value;
     state.integrations.twitter.connected = !!state.integrations.twitter.apiKey;
   } else if(type==='llm'){
-    state.integrations.llm.provider = document.getElementById('llmProvider').value;
+    const prov = document.getElementById('llmProvider').value;
+    const k = document.getElementById('llmKey').value.trim();
+    state.integrations.llm.provider = prov;
     state.integrations.llm.model = document.getElementById('llmModel').value;
-    state.integrations.llm.apiKey = document.getElementById('llmKey').value.trim();
-    state.integrations.llm.connected = !!state.integrations.llm.apiKey;
+    state.integrations.llm.apiKey = k;
+    state.integrations.llm.connected = !!k;
+    // Catch the most common 401 cause at save time: a key that doesn't match the chosen provider.
+    if(k && prov==='anthropic' && !/^sk-ant-/.test(k)){
+      toast('Saved, but that key doesn\'t start with "sk-ant-" — Anthropic will reject it. Paste an Anthropic key, or switch Provider to OpenAI.','warn');
+      persist(); openModal('integrations'); addAudit('Configured integration: llm','You'); return;
+    }
+    if(k && prov==='openai' && /^sk-ant-/.test(k)){
+      toast('Saved, but that\'s an Anthropic key with Provider set to OpenAI. Switch Provider to Anthropic, or paste an OpenAI key.','warn');
+      persist(); openModal('integrations'); addAudit('Configured integration: llm','You'); return;
+    }
   }
   persist(); openModal('integrations'); toast(`${type} saved`,'success');
   addAudit(`Configured integration: ${type}`,'You');
