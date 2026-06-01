@@ -218,6 +218,77 @@
   /* kanban drag feedback */
   .kanban-card.dragging{opacity:.55;transform:rotate(1.5deg) scale(.98);box-shadow:var(--shadow)}
   .kanban-card:active{cursor:grabbing}
+  /* ===== Director command queue ===== */
+  .cmd-queue-head{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;font-family:var(--font-head)}
+  .cmd-queue-head a{color:var(--accent);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600}
+  .cmd-queue{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:240px;overflow:auto}
+  .q-empty{font-size:11.5px;color:var(--muted);padding:8px 2px}
+  .q-item{display:flex;gap:9px;padding:9px;background:var(--panel-2);border:1px solid var(--border);border-radius:8px}
+  .q-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+  .q-body{flex:1;min-width:0}
+  .q-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .q-agent{font-weight:600;font-size:12px;font-family:var(--font-head)}
+  .q-at{font-size:10.5px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+  .q-text{font-size:12.5px;color:var(--text);margin-top:2px;word-break:break-word}
+  .q-detail{font-size:11.5px;color:var(--text-2);margin-top:4px;line-height:1.5;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 9px}
+  .q-foot{display:flex;align-items:center;gap:10px;margin-top:6px}
+  .q-status{font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+  .q-retry{border:1px solid var(--border-2);background:transparent;color:var(--accent);font-size:11px;font-weight:600;border-radius:4px;padding:2px 9px;cursor:pointer;font-family:inherit}
+  .q-retry:hover{background:var(--panel-3)}
+  .q-spin{width:10px;height:10px;border:2px solid color-mix(in srgb,var(--accent) 35%,transparent);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:qspin .7s linear infinite}
+  @keyframes qspin{to{transform:rotate(360deg)}}
+  /* a11y: visible keyboard focus */
+  button:focus-visible,.iconbtn:focus-visible,.nav-item:focus-visible,.btn:focus-visible,.pg-cmd:focus-visible,.chip:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  .q-composer{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px}
+  .q-composer textarea{width:100%;min-height:74px;resize:vertical;background:var(--panel);border:1px solid var(--border-2);border-radius:6px;padding:10px;color:var(--text);font-family:inherit;font-size:13px;outline:none}
+  .q-composer textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 22%,transparent)}
+  .q-composer-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+  .q-list-head{display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px;font-weight:600}
+  #queuePageList{display:flex;flex-direction:column;gap:8px}
+  #queuePageList .q-text{font-size:13.5px}
+  /* ===== Outlook-style mailbox ===== */
+  .mailbox{display:grid;grid-template-columns:200px 330px minmax(0,1fr);border:1px solid var(--border);border-radius:8px;overflow:hidden;height:calc(100vh - 172px);min-height:440px;background:var(--panel);box-shadow:var(--shadow-soft);margin-top:10px}
+  .mbx-folders{border-right:1px solid var(--border);padding:8px;background:var(--panel-2);overflow:auto}
+  .mbx-folder{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;font-size:13px;color:var(--text-2);cursor:pointer;font-weight:500;margin:1px 0}
+  .mbx-folder .ti{font-size:16px;margin-right:6px;color:var(--muted)}
+  .mbx-folder:hover{background:var(--panel-3)}
+  .mbx-folder.active{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);font-weight:600}
+  .mbx-folder.active .ti{color:var(--accent)}
+  .mbx-ct{font-size:11px;font-weight:600;background:var(--panel-3);border-radius:10px;padding:1px 7px;color:var(--muted)}
+  .mbx-folder.active .mbx-ct{background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
+  .mbx-list{border-right:1px solid var(--border);overflow:auto;background:var(--panel)}
+  .mbx-row{display:flex;gap:10px;padding:11px 12px 11px 16px;border-bottom:1px solid var(--border);cursor:pointer;position:relative;align-items:flex-start}
+  .mbx-row:hover{background:var(--panel-2)}
+  .mbx-row.sel{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+  .mbx-row.unread{background:color-mix(in srgb,var(--accent) 5%,transparent)}
+  .mbx-row.unread .mbx-from{font-weight:700}
+  .mbx-ava{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-3));color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0;font-family:var(--font-head)}
+  .mbx-ava.lg{width:42px;height:42px;font-size:15px}
+  .mbx-row-body{flex:1;min-width:0}
+  .mbx-row-top{display:flex;justify-content:space-between;gap:8px}
+  .mbx-from{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mbx-time{font-size:10.5px;color:var(--muted);flex-shrink:0;font-family:'JetBrains Mono',monospace}
+  .mbx-co{font-size:11.5px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center}
+  .mbx-snip{font-size:12px;color:var(--muted);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45}
+  .mbx-unread-dot{position:absolute;left:5px;top:18px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  .mbx-empty{padding:28px 16px;color:var(--muted);font-size:12.5px;text-align:center}
+  .mbx-read{overflow:auto;padding:18px 22px;background:var(--panel)}
+  .mbx-read-head{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .mbx-read-from{font-size:16px;font-weight:600;font-family:var(--font-head)}
+  .mbx-read-co{font-size:12px;color:var(--text-2);margin-top:2px}
+  .mbx-read-actions{display:flex;gap:4px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--border);margin-bottom:16px}
+  .mbx-read-body{font-size:13.5px;line-height:1.7;color:var(--text);white-space:pre-wrap}
+  .mbx-thread{margin-top:14px;padding:12px 14px;background:var(--panel-2);border-left:3px solid var(--accent);border-radius:8px;font-size:12.5px;line-height:1.6}
+  .mbx-thread b{color:var(--accent);font-family:var(--font-head)}
+  .mbx-reply{margin-top:18px;border-top:1px solid var(--border);padding-top:14px}
+  .mbx-reply-quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .reply-chip{font-size:11.5px;padding:5px 10px;border-radius:99px;border:1px solid var(--border-2);background:var(--panel-2);cursor:pointer;color:var(--text-2)}
+  .reply-chip:hover{border-color:var(--accent);color:var(--accent)}
+  .mbx-reply textarea{width:100%;min-height:80px;resize:vertical;background:var(--panel-2);border:1px solid var(--border-2);border-radius:6px;padding:10px;color:var(--text);font-family:inherit;font-size:13px;outline:none}
+  .mbx-reply textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 22%,transparent)}
+  .mbx-read-empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:13px}
+  .mbx-read-empty .ti{font-size:42px;opacity:.4}
+  @media(max-width:1100px){.mailbox{grid-template-columns:1fr;height:auto}.mbx-folders{display:flex;gap:6px;overflow-x:auto;border-right:none;border-bottom:1px solid var(--border)}.mbx-folder{white-space:nowrap}.mbx-list{border-right:none;border-bottom:1px solid var(--border);max-height:360px}}
   /* tidy the section heading inside a page (renderers still emit their own h3) */
   .pg-main>h3:first-child{margin:0 0 3px;font-size:20px;font-weight:600;letter-spacing:-.01em}
   .pg-main>h3:first-child+p{margin:0 0 6px}
@@ -936,7 +1007,8 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
     <div class="status-pill" id="statusPill" onclick="togglePause()" title="Click to pause/resume"><span class="pulse-dot"></span><span id="statusText">All systems operational</span></div>
     <div class="iconbtn" title="Theme" onclick="toggleThemeDD(event)">🎨</div>
     <div class="iconbtn" title="Notifications" onclick="toggleNotif(event)">🔔<span class="badge" id="notifBadge" style="display:none">0</span></div>
-    <div class="iconbtn" title="Help & tour" onclick="openModal('help')">?</div>
+    <div class="iconbtn" title="Compose" aria-label="Compose" onclick="openModal('compose')"><i class="ti ti-pencil-plus"></i></div>
+    <div class="iconbtn" title="Help & tour" aria-label="Help" onclick="openModal('help')">?</div>
     <button class="btn primary" onclick="openModal('newCampaign')">＋ Campaign</button>
     <div class="avatar" title="Keystone Marcy">KM</div>
   </div>
@@ -962,6 +1034,7 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
   <aside class="sidebar">
     <div class="nav-section">Workspace</div>
     <div class="nav-item active" onclick="route('mission')"><span class="ico"><i class="ti ti-dashboard"></i></span>Mission Control</div>
+    <div class="nav-item" onclick="route('queue')"><span class="ico"><i class="ti ti-terminal-2"></i></span>Command queue <span class="count" id="navQueue" style="display:none">0</span></div>
     <div class="nav-item" onclick="openModal('agentEditor')"><span class="ico"><i class="ti ti-robot"></i></span>Agents <span class="count" id="navAgents">7</span></div>
     <div class="nav-item" onclick="openModal('inbox')"><span class="ico"><i class="ti ti-inbox"></i></span>Inbox <span class="count" id="navInbox">0</span></div>
     <div class="nav-item" onclick="openModal('crm')"><span class="ico"><i class="ti ti-users"></i></span>CRM <span class="count" id="navCrm">0</span></div>
@@ -1196,6 +1269,8 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
         <span>Routes via Director · <span class="kbd">⌘ ↵</span></span>
         <button class="btn primary" onclick="sendCommand()">Run ▶</button>
       </div>
+      <div class="cmd-queue-head"><span>Director queue</span><a onclick="route('queue')">Open queue ›</a></div>
+      <div class="cmd-queue" id="cmdQueue"></div>
     </div>
 
     <div class="panel" data-section="schedule">
@@ -1274,6 +1349,7 @@ const DEFAULTS = {
   campaigns: [],
   notifications: [],
   feed: [],
+  commandQueue: [],
   audit: [],
   ideas: [],
   crmContacts: [],
@@ -1324,6 +1400,7 @@ function loadState(){
     if(!Array.isArray(merged.visits)) merged.visits = base.visits;
     if(!Array.isArray(merged.ideas)) merged.ideas = [];
     if(!Array.isArray(merged.feed)) merged.feed = [];
+    if(!Array.isArray(merged.commandQueue)) merged.commandQueue = [];
     return merged;
   }catch(e){console.error('loadState failed, using defaults',e);return JSON.parse(JSON.stringify(DEFAULTS))}
 }
@@ -1347,6 +1424,7 @@ document.documentElement.setAttribute('data-theme', state.theme);
 
 let inboxFilter = 'all';
 let selectedMsgs = new Set();
+let selectedInboxId = null;
 
 setTimeout(()=>{document.getElementById('boot').classList.add('hide');setTimeout(()=>document.getElementById('boot').style.display='none',700)},1400);
 
@@ -2093,7 +2171,7 @@ function renderInsights(){
 function renderAll(){
   renderAgents(); renderLeaderboard(); renderWorkflow();
   renderCalendar(); renderInbox(); renderSchedule();
-  renderAudit(); renderNotifications(); renderFeed();
+  renderAudit(); renderNotifications(); renderFeed(); renderQueue();
   renderCRMPipeline(); renderVisits(); renderInsights();
   document.getElementById('sbUrl').textContent = state.settings.landingUrl.replace(/^https?:\/\//,'');
   const sbT=document.getElementById('sbTarget'); if(sbT) sbT.textContent = state.settings.targetAudience || 'Senior Eng Recruiters';
@@ -2453,6 +2531,7 @@ function setLayout(mode){
 const SECTION_VIEWS = {
   agentEditor:{icon:'🤖',crumb:'Agents'},
   inbox:{icon:'📥',crumb:'Inbox'},
+  queue:{icon:'🎩',crumb:'Command queue'},
   kanban:{icon:'🗂️',crumb:'Content Pipeline'},
   campaigns:{icon:'🎯',crumb:'Campaigns'},
   scheduleManager:{icon:'⏱️',crumb:'Schedule'},
@@ -2499,12 +2578,6 @@ const PAGE_RAILS = {
       ${[['draft','Drafts'],['pending','Pending'],['approved','Approved'],['published','Published']].map(([k,l])=>`<div class="pg-rail-stat"><span>${l}</span><b>${by(k)}</b></div>`).join('')}
       <button class="btn primary sm" onclick="openModal('addContent')">＋ New draft</button></div>`;
   },
-  inbox:()=>{
-    const unread=state.inbox.filter(m=>!m.archived&&m.unread).length; const hot=state.inbox.filter(m=>m.tag==='hot'&&!m.archived).length;
-    return `<div class="pg-rail-card"><h4><i class="ti ti-inbox"></i> Inbox</h4>
-      <div class="pg-rail-stat"><span>Unread</span><b>${unread}</b></div>
-      <div class="pg-rail-stat"><span>Hot</span><b>${hot}</b></div></div>`;
-  },
   visits:()=>`<div class="pg-rail-card"><h4><i class="ti ti-brand-linkedin"></i> Attribution</h4>
       <div style="font-size:12px;color:var(--text-2);line-height:1.6">Visits tagged <b>LinkedIn</b> are clicks from Vesper's posts. Connect Plausible in Integrations for live data.</div></div>`,
   analytics:()=>`<div class="pg-rail-card"><h4><i class="ti ti-gauge"></i> Key metrics</h4>
@@ -2527,6 +2600,18 @@ const PAGE_RAILS = {
       <div class="pg-rail-stat"><span>By you</span><b>${byYou}</b></div>
       <div class="pg-rail-stat"><span>By agents</span><b>${total-byYou}</b></div></div>`;
   }
+};
+/* Azure-portal-style command toolbar per page (complements in-page buttons). */
+const PAGE_TOOLBARS = {
+  crm:()=>`<button class="pg-cmd" onclick="openModal('addContact')"><i class="ti ti-user-plus"></i>Add contact</button><button class="pg-cmd" onclick="openModal('compose')"><i class="ti ti-mail"></i>Compose</button><button class="pg-cmd" onclick="exportState()"><i class="ti ti-download"></i>Export</button>`,
+  kanban:()=>`<button class="pg-cmd" onclick="openModal('addContent')"><i class="ti ti-plus"></i>New draft</button><button class="pg-cmd" onclick="openModal('compose')"><i class="ti ti-pencil-plus"></i>Compose post</button><button class="pg-cmd" onclick="loadKMContentPack()"><i class="ti ti-books"></i>Load pack</button>`,
+  inbox:()=>`<button class="pg-cmd" onclick="openModal('compose')"><i class="ti ti-pencil-plus"></i>Compose</button><button class="pg-cmd" onclick="mailboxFolder('unread')"><i class="ti ti-mail-opened"></i>Unread</button><button class="pg-cmd" onclick="mailboxFolder('archived')"><i class="ti ti-archive"></i>Archived</button>`,
+  visits:()=>`<button class="pg-cmd" onclick="refreshAnalytics()"><i class="ti ti-refresh"></i>Refresh</button>`,
+  analytics:()=>`<button class="pg-cmd" onclick="refreshAnalytics()"><i class="ti ti-refresh"></i>Refresh</button><button class="pg-cmd" onclick="exportState()"><i class="ti ti-download"></i>Export</button>`,
+  campaigns:()=>`<button class="pg-cmd" onclick="openModal('newCampaign')"><i class="ti ti-plus"></i>New campaign</button>`,
+  agentEditor:()=>`<button class="pg-cmd" onclick="openModal('addAgent')"><i class="ti ti-plus"></i>Add agent</button>`,
+  abtests:()=>`<button class="pg-cmd" onclick="openModal('newAB')"><i class="ti ti-plus"></i>New test</button>`,
+  queue:()=>`<button class="pg-cmd" onclick="clearDoneQueue()"><i class="ti ti-eraser"></i>Clear done</button>`
 };
 let currentRoute = 'mission', currentRouteArg;
 function setNavSel(view){
@@ -2551,7 +2636,8 @@ function route(view,arg){
   currentRoute=view; currentRouteArg=arg;
   const content = (MODAL_RENDERS[view] || (()=>'<p style="color:var(--muted)">Coming soon.</p>'))(arg);
   const rail = PAGE_RAILS[view] ? PAGE_RAILS[view](arg) : '';
-  document.getElementById('pgBody').innerHTML =
+  const toolbar = PAGE_TOOLBARS[view] ? '<div class="pg-toolbar">'+PAGE_TOOLBARS[view](arg)+'</div>' : '';
+  document.getElementById('pgBody').innerHTML = toolbar +
     '<div class="pg-layout'+(rail?'':' norail')+'"><div class="pg-main">'+content+'</div>'+
     (rail?'<aside class="pg-rail">'+rail+'</aside>':'')+'</div>';
   if(MODAL_INIT[view]) MODAL_INIT[view](arg);
@@ -2635,14 +2721,57 @@ const MODAL_RENDERS = {
         <span class="status-tag ${a.status==='ok'?'st-approved':a.status==='busy'?'st-pending':'st-draft'}">${a.status}</span>
       </div>`).join('')}
     </div>`,
-  inbox:()=>`<h3 class="display">📥 Recruiter Inbox</h3>
-    <div class="pg-cards" style="margin-top:14px">
-    ${state.inbox.filter(m=>!m.archived).map(m=>`
-      <div class="content-card" style="cursor:pointer" onclick="closeModal();setTimeout(()=>openInboxMessage(state.inbox.find(x=>x.id=='${m.id}')),100)">
-        <div style="flex:1"><div class="ti">${esc(m.from)} <span style="font-weight:400;color:var(--muted);font-size:11px">· ${esc(m.co)}</span></div><div class="meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px">${esc(m.preview)}</div></div>
-        <span class="inbox-tag tag-${m.tag}">${m.tag.toUpperCase()}</span>
-      </div>`).join('')}
-    </div>`,
+  inbox:()=>{
+    const folders=[['all','Inbox','ti-inbox'],['unread','Unread','ti-mail-opened'],['hot','Hot','ti-flame'],['warm','Warm','ti-temperature'],['new','New','ti-sparkles'],['archived','Archived','ti-archive']];
+    const act=state.inbox.filter(m=>!m.archived);
+    const counts={all:act.length,unread:act.filter(m=>m.unread).length,hot:act.filter(m=>m.tag==='hot').length,warm:act.filter(m=>m.tag==='warm').length,new:act.filter(m=>m.tag==='new').length,archived:state.inbox.filter(m=>m.archived).length};
+    let msgs = inboxFilter==='archived' ? state.inbox.filter(m=>m.archived) : act.slice();
+    if(inboxFilter==='unread') msgs=msgs.filter(m=>m.unread);
+    else if(inboxFilter==='hot'||inboxFilter==='warm'||inboxFilter==='new') msgs=msgs.filter(m=>m.tag===inboxFilter);
+    let sel = msgs.find(m=>m.id===selectedInboxId) || msgs[0] || null;
+    if(sel) selectedInboxId=sel.id;
+    const ini=n=>String(n||'?').split(' ').map(p=>p[0]).slice(0,2).join('');
+    const foldersHTML=folders.map(([k,label,ic])=>`<div class="mbx-folder ${inboxFilter===k?'active':''}" onclick="mailboxFolder('${k}')"><span><i class="ti ${ic}"></i> ${label}</span>${counts[k]?`<span class="mbx-ct">${counts[k]}</span>`:''}</div>`).join('');
+    const listHTML = msgs.length ? msgs.map(m=>`
+      <div class="mbx-row ${m.unread?'unread':''} ${sel&&m.id===sel.id?'sel':''}" data-mid="${esc(m.id)}" onclick="mailboxOpen('${m.id}')">
+        ${m.unread?'<span class="mbx-unread-dot"></span>':''}
+        <div class="mbx-ava">${esc(ini(m.from))}</div>
+        <div class="mbx-row-body">
+          <div class="mbx-row-top"><span class="mbx-from">${esc(m.from)}</span><span class="mbx-time">${esc(m.time)}</span></div>
+          <div class="mbx-co">${esc(m.co)} <span class="inbox-tag tag-${esc(m.tag)}" style="margin-left:4px">${esc(String(m.tag).toUpperCase())}</span></div>
+          <div class="mbx-snip">${esc(m.preview)}</div>
+        </div>
+      </div>`).join('') : `<div class="mbx-empty">No ${inboxFilter==='all'?'':esc(inboxFilter)+' '}messages.</div>`;
+    const readHTML = sel ? `
+      <div class="mbx-read-head">
+        <div class="mbx-ava lg">${esc(ini(sel.from))}</div>
+        <div style="flex:1;min-width:0"><div class="mbx-read-from">${esc(sel.from)}</div><div class="mbx-read-co">${esc(sel.co)} · ${esc(sel.time)} ago</div></div>
+        <span class="inbox-tag tag-${esc(sel.tag)}">${esc(String(sel.tag).toUpperCase())}</span>
+      </div>
+      <div class="mbx-read-actions">
+        <button class="pg-cmd" onclick="document.getElementById('mbxReply').focus()"><i class="ti ti-arrow-back-up"></i>Reply</button>
+        <button class="pg-cmd" onclick="archiveMsg('${sel.id}');route('inbox')"><i class="ti ti-archive"></i>Archive</button>
+        <button class="pg-cmd" onclick="addContactFromInbox(state.inbox.find(x=>x.id=='${sel.id}'));toast('Added to CRM','success')"><i class="ti ti-user-plus"></i>Add to CRM</button>
+        <button class="pg-cmd" onclick="mailboxUnread('${sel.id}')"><i class="ti ti-mail"></i>Mark unread</button>
+      </div>
+      <div class="mbx-read-body">${esc(sel.preview)}</div>
+      ${sel.thread&&sel.thread.length?`<div class="mbx-thread"><b>You replied:</b><br/>${esc(sel.thread[sel.thread.length-1])}</div>`:''}
+      <div class="mbx-reply">
+        <div class="mbx-reply-quick">
+          <span class="reply-chip" onclick="document.getElementById('mbxReply').value='Thanks for reaching out — does Tue or Wed afternoon work for a quick call?'">👋 Available Tue/Wed</span>
+          <span class="reply-chip" onclick="document.getElementById('mbxReply').value='Appreciate the message. Could you share a bit more about the role and team?'">📋 More details</span>
+          <span class="reply-chip" onclick="document.getElementById('mbxReply').value='Thanks. Not actively looking right now, but happy to stay in touch.'">⏸️ Decline</span>
+        </div>
+        <textarea id="mbxReply" placeholder="Write a reply to ${esc(sel.from)}…"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn primary sm" onclick="mailboxSendReply('${sel.id}')">Send reply ▶</button></div>
+      </div>` : `<div class="mbx-read-empty"><i class="ti ti-mail-opened"></i><div>Select a message to read it here.</div></div>`;
+    return `<h3 class="display">📥 Inbox</h3>
+    <div class="mailbox">
+      <div class="mbx-folders">${foldersHTML}</div>
+      <div class="mbx-list">${listHTML}</div>
+      <div class="mbx-read">${readHTML}</div>
+    </div>`;
+  },
   kanban:()=>`<h3 class="display">📋 Content Pipeline</h3>
     <p style="color:var(--muted);font-size:12.5px">Drag cards between columns · click a card to edit · ${state.integrations.linkedin.connected?'<span style="color:var(--green)">● LinkedIn connected — Approve will offer to publish</span>':'<span style="color:var(--amber)">⚠ LinkedIn not wired — only simulating</span>'}</p>
     <div style="display:flex;gap:6px;margin-top:6px"><button class="btn primary sm" onclick="openModal('addContent')">＋ New draft</button><button class="btn ghost sm" onclick="loadKMContentPack()">📚 Load KM content pack (7 real posts)</button></div>
@@ -2687,6 +2816,35 @@ const MODAL_RENDERS = {
         <div style="flex:1"><div class="ti">${s.what}</div><div class="meta mono">${s.when}</div></div>
         <div style="display:flex;gap:6px;align-items:center"><div class="toggle ${s.on?'on':''}" onclick="toggleSched('${s.id}')"></div><button class="btn danger sm" onclick="deleteSched('${s.id}')">×</button></div>
       </div>`).join('')}
+    </div>`,
+  queue:()=>`<h3 class="display">🎩 Director command queue</h3>
+    <p style="color:var(--muted);font-size:12.5px">Natural-language commands route to the right agent and run for real. Status updates live. Without an LLM/Plausible key, tasks finish as <b>Needs setup</b> with guidance.</p>
+    <div class="q-composer">
+      <textarea id="cmdInputPage" placeholder="e.g. 'Draft 3 LinkedIn posts about ERP rollouts' · 'Send outreach to hot leads' · 'Refresh analytics' · 'Pause all'"></textarea>
+      <div class="q-composer-foot">
+        <div class="quick-cmds">
+          <span class="chip" onclick="quick('Draft 3 LinkedIn posts about my recent work','cmdInputPage')">💡 Draft posts</span>
+          <span class="chip action" onclick="quick('Send personalized outreach to my hot leads','cmdInputPage')">✉️ Outreach</span>
+          <span class="chip target" onclick="quick('Refresh analytics from Plausible','cmdInputPage')">📊 Analytics</span>
+          <span class="chip" onclick="quick('Refresh the weekly strategy brief','cmdInputPage')">🧭 Strategy</span>
+        </div>
+        <button class="btn primary" onclick="sendCommand('cmdInputPage')">Run ▶</button>
+      </div>
+    </div>
+    <div class="q-list-head"><b>Queue</b><button class="btn ghost sm" onclick="clearDoneQueue()">Clear done</button></div>
+    <div id="queuePageList"></div>`,
+  compose:()=>`<h3 class="display">✍️ Compose</h3>
+    <p style="color:var(--muted);font-size:12.5px">Draft a LinkedIn post (Lyra) or a recruiter DM (Atlas). Use <b>Draft with AI</b> if an LLM is connected.</p>
+    <div class="field"><label>Type</label><select id="cmpType" onchange="composeTypeChange()">
+      <option value="post">LinkedIn post · Lyra</option>
+      <option value="dm">Recruiter DM · Atlas</option>
+    </select></div>
+    <div class="field" id="cmpToWrap" style="display:none"><label>Recipient (CRM contact)</label><select id="cmpTo">${state.crmContacts.length?state.crmContacts.map(c=>`<option value="${esc(c.id)}">${esc(c.name)} · ${esc(c.company)}</option>`).join(''):'<option value="">No contacts yet — add one in CRM</option>'}</select></div>
+    <div class="field"><label>Title / subject</label><input id="cmpTitle" placeholder="e.g. The thing nobody tells you about ERP rollouts"/></div>
+    <div class="field"><label>Body</label><textarea id="cmpBody" style="min-height:150px" placeholder="Write here, or let AI draft it…"></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:space-between;flex-wrap:wrap">
+      <button class="btn ghost" onclick="composeDraftAI()"><i class="ti ti-sparkles"></i> Draft with AI</button>
+      <div style="display:flex;gap:8px"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="composeSave()">Save draft</button></div>
     </div>`,
   addSchedule:()=>`<h3 class="display">＋ Add scheduled task</h3>
     <div class="field"><label>Description</label><input id="sNew" placeholder="e.g. LinkedIn comment sweep"/></div>
@@ -3021,6 +3179,8 @@ Keystone`;
 const MODAL_INIT = {};
 /* Analytics page: draw the performance chart into its own canvas once laid out. */
 MODAL_INIT.analytics = ()=>{ setTimeout(()=>{ try{ drawChart('analyticsChart'); }catch(e){console.warn('analyticsChart',e)} }, 60); };
+/* Command queue page: populate the live list after render. */
+MODAL_INIT.queue = ()=>{ renderQueue(); };
 
 /* ===== Save handlers ===== */
 function saveAgent(id){
@@ -3198,6 +3358,57 @@ function openInboxMessage(m){m.unread=false;persist();renderInbox();openModal('i
 function useReply(el,text){document.getElementById('repBody').value=text;document.querySelectorAll('.reply-row').forEach(r=>r.style.background='');el.style.background='var(--panel-3)'}
 function sendReply(id){const m=state.inbox.find(x=>x.id===id);const body=document.getElementById('repBody').value.trim();if(!body)return toast('Type a reply','warn');m.thread=m.thread||[];m.thread.push(body);m.archived=true;addContactFromInbox(m);const c=state.crmContacts.find(x=>x.name===m.from);if(c){c.timeline=c.timeline||[];c.timeline.unshift({at:'just now',who:'You',what:'Sent reply via inbox'});if(c.status==='new')c.status='contacted'}persist();renderInbox();renderCRMPipeline();closeModal();toast(`Reply sent to ${m.from}`,'success');addAudit(`Replied: ${m.from}`,'Echo');pushNotif({icon:'✉️',body:`Reply sent to <b>${esc(m.from)}</b>`})}
 function archiveMsg(id){const m=state.inbox.find(x=>x.id===id);if(m){m.archived=true;persist();renderInbox();closeModal();toast('Archived','info')}}
+/* ===== Outlook-style mailbox (Inbox page) ===== */
+function mailboxFolder(f){ inboxFilter=f; selectedInboxId=null; if(currentRoute==='inbox') route('inbox'); }
+function mailboxOpen(id){ const m=state.inbox.find(x=>x.id===id); if(m&&m.unread){m.unread=false;persist()} selectedInboxId=id; if(currentRoute==='inbox') route('inbox'); }
+function mailboxUnread(id){ const m=state.inbox.find(x=>x.id===id); if(m){m.unread=true;persist();toast('Marked unread','info'); if(currentRoute==='inbox') route('inbox');} }
+function mailboxSendReply(id){
+  const m=state.inbox.find(x=>x.id===id); if(!m) return;
+  const ta=document.getElementById('mbxReply'); const body=(ta?ta.value:'').trim();
+  if(!body) return toast('Type a reply','warn');
+  m.thread=m.thread||[]; m.thread.push(body); m.unread=false;
+  addContactFromInbox(m);
+  const c=state.crmContacts.find(x=>x.name===m.from); if(c){c.timeline=c.timeline||[];c.timeline.unshift({at:'just now',who:'You',what:'Sent reply via inbox'});if(c.status==='new')c.status='contacted'}
+  persist(); toast(`Reply sent to ${m.from}`,'success'); addAudit(`Replied: ${m.from}`,'Echo'); pushNotif({icon:'✉️',body:`Reply sent to <b>${esc(m.from)}</b>`});
+  renderAll(); if(currentRoute==='inbox') route('inbox');
+}
+/* Mailbox keyboard nav: j/k move, Enter focuses reply, e archives (only on the Inbox page). */
+document.addEventListener('keydown',e=>{
+  if(currentRoute!=='inbox') return;
+  const tag=(e.target&&e.target.tagName)||''; if(/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+  const rows=[...document.querySelectorAll('.mbx-row')]; if(!rows.length) return;
+  const ids=rows.map(r=>r.dataset.mid); let idx=ids.indexOf(selectedInboxId); if(idx<0) idx=0;
+  if(e.key==='j'||e.key==='ArrowDown'){ idx=Math.min(idx+1,ids.length-1); mailboxOpen(ids[idx]); e.preventDefault(); }
+  else if(e.key==='k'||e.key==='ArrowUp'){ idx=Math.max(idx-1,0); mailboxOpen(ids[idx]); e.preventDefault(); }
+  else if(e.key==='Enter'){ const ta=document.getElementById('mbxReply'); if(ta){ ta.focus(); e.preventDefault(); } }
+  else if(e.key==='e'&&selectedInboxId){ archiveMsg(selectedInboxId); if(currentRoute==='inbox') route('inbox'); e.preventDefault(); }
+});
+/* ===== Compose (new post / DM) ===== */
+function composeTypeChange(){ const w=document.getElementById('cmpToWrap'); if(w) w.style.display = document.getElementById('cmpType').value==='dm'?'':'none'; }
+async function composeDraftAI(){
+  if(!llmReady()) return toast('Connect an LLM in Integrations first','warn');
+  const t=document.getElementById('cmpType').value, title=document.getElementById('cmpTitle').value.trim();
+  toast('Drafting with AI…','info');
+  try{
+    let txt;
+    if(t==='post'){ txt=await callLLM(KM_CONTEXT+"\n\nYou are Lyra. Write ONE LinkedIn post (120-200 words) in Keystone's voice. Plain text, hook first.", title||'Write a strong post about my recent work.', {maxTokens:400}); }
+    else{ const c=state.crmContacts.find(x=>x.id===document.getElementById('cmpTo').value); txt=await callLLM(KM_CONTEXT+"\n\nYou are Atlas. Write ONE personalized 90-120 word LinkedIn DM. Plain text, soft CTA.", `Recipient: ${c?c.name+', '+c.role+' at '+c.company:'a recruiter'}.${c&&c.notes?' Context: '+c.notes:''}`, {maxTokens:300}); }
+    document.getElementById('cmpBody').value=String(txt).trim(); toast('Draft ready','success');
+  }catch(e){ toast('Draft failed: '+String(e.message||e).slice(0,80),'error'); }
+}
+function composeSave(){
+  const t=document.getElementById('cmpType').value, title=document.getElementById('cmpTitle').value.trim(), body=document.getElementById('cmpBody').value.trim();
+  if(!body) return toast('Write or draft a body first','warn');
+  if(t==='post'){
+    state.content.push({id:'c'+Date.now(),title:title||body.split('\n')[0].slice(0,60),body,status:'draft',scheduledFor:''});
+    persist(); closeModal(); toast('Post draft saved → Pipeline','success'); addAudit('Composed a post draft','You');
+    if(currentRoute==='kanban') route('kanban');
+  }else{
+    const c=state.crmContacts.find(x=>x.id===document.getElementById('cmpTo').value);
+    if(!c) return toast('Pick a recipient (add a CRM contact first)','warn');
+    c.draft=body; persist(); closeModal(); addAudit('Composed a DM for '+c.name,'You'); openModal('composeDM',c);
+  }
+}
 
 /* ===== Real Atlas outreach — fires the outreach webhook with personalized DM ===== */
 async function sendOutreachReal(contact, customMessage){
@@ -3958,37 +4169,111 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ===== Smart command ===== */
-function quick(t){const ci=document.getElementById('cmdInput');ci.value=t;ci.focus()}
-function sendCommand(){
-  const v = document.getElementById('cmdInput').value.trim();
-  if(!v) return toast('Type a command','warn');
-  const low = v.toLowerCase();
-  pushFeed({agent:"You",icon:"🎙️",text:`Command: <b>${esc(v.length>60?v.slice(0,60)+'…':v)}</b>`});
+function quick(t,id){const ci=document.getElementById(id||'cmdInput');if(ci){ci.value=t;ci.focus()}}
+
+/* ===== Direct Command → real Director queue + execution ===== */
+const CMD_ROUTING = {pause:'Director',resume:'Director',general:'Director',content:'Lyra',outreach:'Atlas',find:'Atlas',analytics:'Nova',strategy:'Athena',engage:'Echo'};
+function classifyIntent(low){
+  if(/(pause|stop|halt)/.test(low)) return 'pause';
+  if(/(resume|unpause|un-pause)/.test(low)) return 'resume';
+  if(/(idea|draft|post|write|generate)/.test(low) && /(post|content|linkedin)/.test(low)) return 'content';
+  if(/(outreach|\bdm\b|message|connect)/.test(low)) return 'outreach';
+  if(/(find|search|look)/.test(low) && /recruit/.test(low)) return 'find';
+  if(/(report|analytics|metrics|performance|visit)/.test(low)) return 'analytics';
+  if(/(pivot|theme|focus|strategy|brief)/.test(low)) return 'strategy';
+  if(/(reply|respond|engage)/.test(low)) return 'engage';
+  return 'general';
+}
+function llmReady(){return !!(state.integrations.llm && state.integrations.llm.apiKey)}
+const CMD_EXECUTORS = {
+  pause: async ()=>{ if(!state.paused) togglePause(); return {detail:'All agents paused.'}; },
+  resume: async ()=>{ if(state.paused) togglePause(); return {detail:'Agents resumed · schedules active.'}; },
+  content: async (task)=>{
+    if(!llmReady()) return {needsSetup:true, detail:'Connect an LLM in Integrations so Lyra can draft posts.'};
+    const m = task.text.match(/\b([1-9])\b/); const n = m?parseInt(m[1]):3;
+    const sys = KM_CONTEXT+`\n\nYou are Lyra, content creator. Write ${n} distinct LinkedIn post draft(s) in Keystone's voice, 120-200 words each. Separate each post with a line containing only ---. No numbering, no preamble.`;
+    const txt = await callLLM(sys, task.text, {maxTokens:280*n});
+    const chunks = txt.split(/\n-{3,}\n/).map(s=>s.trim()).filter(Boolean);
+    let added=0;
+    chunks.forEach(body=>{ const title=(body.split('\n')[0]||'Draft').replace(/^#+\s*/,'').slice(0,70); state.content.push({id:'c'+Date.now()+Math.random().toString(36).slice(2,5),title,body,status:'draft',scheduledFor:''}); added++; });
+    return {detail:`Lyra drafted ${added} post${added===1?'':'s'} → Pipeline (Drafts).`};
+  },
+  outreach: async ()=>{
+    if(!llmReady()) return {needsSetup:true, detail:'Connect an LLM in Integrations so Atlas can personalize DMs.'};
+    await SCHEDULE_RUNNERS.outreach({});
+    return {detail:'Atlas drafted DMs for hot/warm contacts → review in CRM.'};
+  },
+  find: async ()=> ({needsSetup:true, detail:'Recruiter search needs a LinkedIn/data source — not wired yet. Add contacts manually in CRM for now.'}),
+  analytics: async ()=>{
+    if(!(state.integrations.analytics && state.integrations.analytics.apiKey)) return {needsSetup:true, detail:'Connect Plausible in Integrations to pull live analytics.'};
+    await fetchPlausibleData(true); return {detail:'Nova refreshed analytics from Plausible.'};
+  },
+  strategy: async ()=>{
+    if(!llmReady()) return {needsSetup:true, detail:'Connect an LLM in Integrations so Athena can write the brief.'};
+    await SCHEDULE_RUNNERS.cycle({});
+    return {detail:'Athena refreshed the weekly strategy brief (see Live Activity).'};
+  },
+  engage: async ()=> ({detail:'Echo handles replies from the Inbox — open a message and use Reply.'}),
+  general: async (task)=>{
+    if(!llmReady()) return {needsSetup:true, detail:'Connect an LLM in Integrations so the Director can act on free-form commands.'};
+    const sys = KM_CONTEXT+"\n\nYou are the Director of an autonomous marketing agency. In 2-3 sentences, say how you'd action this command and which agent you'd route it to.";
+    const txt = await callLLM(sys, task.text, {maxTokens:220});
+    return {detail:txt.trim()};
+  }
+};
+function agentByName(name){return state.agents.find(a=>a.name===name)}
+async function processCommand(task){
+  task.status='running'; task.startedAt=Date.now(); persist(); renderQueue();
+  const ag = agentByName(task.agent); let prevS, prevT;
+  if(ag && task.intent!=='pause' && task.intent!=='resume'){ prevS=ag.status; prevT=ag.task; ag.status='busy'; ag.task='Working · '+task.text.slice(0,40); renderAgents(); }
+  try{
+    const res = await (CMD_EXECUTORS[task.intent]||CMD_EXECUTORS.general)(task);
+    task.status = (res&&res.needsSetup) ? 'needs-setup' : 'done';
+    task.detail = (res&&res.detail) || 'Done.';
+    pushFeed({agent:task.agent, icon: task.status==='needs-setup'?'⚙️':'✅', text:`${task.status==='needs-setup'?'Needs setup':'Done'} · ${esc(task.detail)}`});
+    if(task.status==='done') pushNotif({icon:'🎩',body:`<b>${esc(task.agent)}</b> finished: ${esc(task.text.slice(0,50))}`});
+  }catch(e){
+    task.status='failed'; task.detail=(e&&e.message)?String(e.message).slice(0,160):'Failed';
+    pushFeed({agent:task.agent, icon:'⚠️', text:`Failed · ${esc(task.detail)}`});
+  }
+  task.finishedAt=Date.now();
+  if(ag && task.intent!=='pause' && task.intent!=='resume'){ ag.status=prevS||'ok'; ag.task=prevT||'Ready'; renderAgents(); }
+  persist(); renderQueue(); renderAll();
+}
+function sendCommand(inputId){
+  const el = document.getElementById(inputId||'cmdInput'); if(!el) return;
+  const v = el.value.trim(); if(!v) return toast('Type a command','warn');
+  const intent = classifyIntent(v.toLowerCase());
+  const agent = CMD_ROUTING[intent]||'Director';
+  el.value='';
+  pushFeed({agent:'You',icon:'🎙️',text:`Command: <b>${esc(v.length>60?v.slice(0,60)+'…':v)}</b>`});
   addAudit(`Command: ${v.slice(0,80)}`,'You');
-  document.getElementById('cmdInput').value='';
-  let intent = 'general';
-  if(/(pause|stop|halt)/.test(low)) intent='pause';
-  else if(/(resume|unpause|start)/.test(low)) intent='resume';
-  else if(/(idea|draft|post|write|generate)/.test(low) && /(post|content|linkedin)/.test(low)) intent='content';
-  else if(/(outreach|message|connect|recruit)/.test(low)) intent='outreach';
-  else if(/(find|search|look)/.test(low) && /recruit/.test(low)) intent='find';
-  else if(/(report|analytics|metrics|performance)/.test(low)) intent='analytics';
-  else if(/(pivot|theme|focus)/.test(low)) intent='strategy';
-  else if(/reply|respond/.test(low)) intent='engage';
-  const reactions = {
-    pause:[{a:'Director',i:'🎩',t:'Pausing all agents'}],
-    resume:[{a:'Director',i:'🎩',t:'Resuming · checking schedules'}],
-    content:[{a:'Director',i:'🎩',t:'Routing to <b>Lyra</b>'},{a:'Lyra',i:'✍️',t:'Drafting <b>5 LinkedIn ideas</b>'},{a:'Director',i:'🎩',t:'Drafts ready in ~2 min'}],
-    outreach:[{a:'Director',i:'🎩',t:'Routing to <b>Atlas</b>'},{a:'Atlas',i:'🎯',t:'Personalizing messages'},{a:'Atlas',i:'🎯',t:'<b>10 requests</b> queued'}],
-    find:[{a:'Director',i:'🎩',t:'Routing to <b>Atlas</b>'},{a:'Atlas',i:'🎯',t:'Searching LinkedIn'},{a:'Atlas',i:'🎯',t:'Found <b>22 recruiters</b>'}],
-    analytics:[{a:'Director',i:'🎩',t:'Routing to <b>Nova</b>'},{a:'Nova',i:'📊',t:'Compiling latest report'}],
-    strategy:[{a:'Director',i:'🎩',t:'Routing to <b>Athena</b>'},{a:'Athena',i:'🧭',t:'Re-analyzing trends'},{a:'Athena',i:'🧭',t:'Brief updated · briefing Lyra'}],
-    engage:[{a:'Director',i:'🎩',t:'Routing to <b>Echo</b>'},{a:'Echo',i:'💬',t:'Drafting reply'},{a:'Director',i:'🎩',t:'Reply ready for review'}],
-    general:[{a:'Director',i:'🎩',t:'Processing command'},{a:'Director',i:'🎩',t:'Command queued'}]
-  };
-  const seq = reactions[intent] || reactions.general;
-  seq.forEach((s,i)=>setTimeout(()=>pushFeed({agent:s.a,icon:s.i,text:s.t}),(i+1)*900));
-  if(intent==='pause'){togglePause()}
+  const task = {id:'q'+Date.now(), text:v, intent, agent, status:'queued', detail:'', at:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), startedAt:0, finishedAt:0};
+  state.commandQueue.unshift(task);
+  if(state.commandQueue.length>40) state.commandQueue=state.commandQueue.slice(0,40);
+  persist(); renderQueue(); toast(`Routed to ${agent}`,'info');
+  processCommand(task);
+}
+function clearDoneQueue(){ state.commandQueue=state.commandQueue.filter(t=>t.status==='queued'||t.status==='running'); persist(); renderQueue(); }
+function retryTask(id){ const t=state.commandQueue.find(x=>x.id===id); if(t) processCommand(t); }
+const QUEUE_STATUS = {queued:{c:'var(--muted)',l:'Queued'},running:{c:'var(--accent)',l:'Running'},done:{c:'var(--green)',l:'Done'},failed:{c:'var(--red)',l:'Failed'},'needs-setup':{c:'var(--amber)',l:'Needs setup'}};
+function queueItemHTML(t,compact){
+  const s=QUEUE_STATUS[t.status]||QUEUE_STATUS.queued;
+  return `<div class="q-item">
+    <span class="q-dot" style="background:${s.c}"></span>
+    <div class="q-body">
+      <div class="q-top"><span class="q-agent">${esc(t.agent)}</span><span class="q-at">${esc(t.at)}</span></div>
+      <div class="q-text">${esc(t.text)}</div>
+      ${t.detail&&!compact?`<div class="q-detail">${esc(t.detail)}</div>`:''}
+      <div class="q-foot"><span class="q-status" style="color:${s.c}">${t.status==='running'?'<span class="q-spin"></span>':''}${s.l}</span>${t.status==='failed'?`<button class="q-retry" onclick="retryTask('${t.id}')">Retry</button>`:''}</div>
+    </div></div>`;
+}
+function renderQueue(){
+  const mini=document.getElementById('cmdQueue');
+  if(mini){ const q=state.commandQueue.slice(0,4); mini.innerHTML = q.length? q.map(t=>queueItemHTML(t,true)).join('') : '<div class="q-empty">No commands yet — type one above and hit Run.</div>'; }
+  const page=document.getElementById('queuePageList');
+  if(page){ page.innerHTML = state.commandQueue.length? state.commandQueue.map(t=>queueItemHTML(t,false)).join('') : emptyState('inbox-off','Queue empty','Send a command from the Direct Command box on Mission Control or the composer above.'); }
+  const nq=document.getElementById('navQueue'); if(nq){ const active=state.commandQueue.filter(t=>t.status==='queued'||t.status==='running').length; nq.textContent=active; nq.style.display=active?'':'none'; }
 }
 
 /* ===== Init ===== */
