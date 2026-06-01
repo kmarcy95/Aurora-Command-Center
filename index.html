@@ -4411,6 +4411,13 @@ document.addEventListener('keydown',e=>{
   else if(cmd && e.key.toLowerCase()==='i'){e.preventDefault();openModal('quickCapture')}
   else if(cmd && e.key==='.'){e.preventDefault();togglePause()}
 });
+/* ⌘/Ctrl + ↵ inside a command box runs it (advertised in the Direct Command footer) */
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){
+    const id=e.target&&e.target.id;
+    if(id==='cmdInput'||id==='cmdInputPage'){e.preventDefault();sendCommand(id);}
+  }
+});
 
 /* ===== Smart command ===== */
 function quick(t,id){const ci=document.getElementById(id||'cmdInput');if(ci){ci.value=t;ci.focus()}}
