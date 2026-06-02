@@ -715,6 +715,10 @@
   .modal h3{margin:0 0 4px;font-size:18px;display:flex;align-items:center;gap:8px;font-family:var(--font-head)}
   .modal .close{position:absolute;top:14px;right:18px;background:none;border:0;color:var(--muted);font-size:22px;cursor:pointer;width:30px;height:30px;border-radius:7px;display:grid;place-items:center;transition:.15s}
   .modal .close:hover{background:var(--panel-3);color:var(--text)}
+  .modal .modal-refresh{position:absolute;top:14px;right:52px;background:none;border:0;color:var(--muted);font-size:16px;cursor:pointer;width:30px;height:30px;border-radius:7px;display:grid;place-items:center;transition:.15s}
+  .modal .modal-refresh:hover{background:var(--panel-3);color:var(--text)}
+  @keyframes refreshSpin{to{transform:rotate(360deg)}}
+  .spin-once i{display:inline-block;animation:refreshSpin .7s ease}
   .field{display:flex;flex-direction:column;gap:6px;margin-top:14px}
   .field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;font-family:var(--font-head)}
   .field input,.field textarea,.field select{background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:13px;outline:none;transition:.15s}
@@ -1047,6 +1051,7 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
   </div>
   <div class="topbar-right">
     <div class="status-pill" id="statusPill" onclick="togglePause()" title="Click to pause/resume"><span class="pulse-dot"></span><span id="statusText">All systems operational</span></div>
+    <div class="iconbtn" title="Refresh view" aria-label="Refresh view" onclick="refreshView(event)"><i class="ti ti-refresh"></i></div>
     <div class="iconbtn" title="Theme" onclick="toggleThemeDD(event)">🎨</div>
     <div class="iconbtn" title="Notifications" onclick="toggleNotif(event)">🔔<span class="badge" id="notifBadge" style="display:none">0</span></div>
     <div class="iconbtn" title="Compose" aria-label="Compose" onclick="openModal('compose')"><i class="ti ti-pencil-plus"></i></div>
@@ -1336,7 +1341,7 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
 <div class="sidebar-bd" id="sidebarBd" onclick="toggleMobileMenu()"></div>
 <button class="quick-capture" onclick="openModal('quickCapture')" title="Quick capture an idea">＋</button>
 
-<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modalContent"><button class="close" onclick="closeModal()">×</button><div id="modalBody"></div></div></div>
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modalContent"><button class="modal-refresh" title="Refresh" aria-label="Refresh" onclick="refreshView(event)"><i class="ti ti-refresh"></i></button><button class="close" onclick="closeModal()">×</button><div id="modalBody"></div></div></div>
 
 <div class="palette-bd" id="paletteBd">
   <div class="palette">
@@ -2763,6 +2768,7 @@ const PAGE_TOOLBARS = {
   queue:()=>`<button class="pg-cmd" onclick="clearDoneQueue()"><i class="ti ti-eraser"></i>Clear done</button>`
 };
 let currentRoute = 'mission', currentRouteArg;
+let currentModalType = null, currentModalArg;
 function setNavSel(view){
   let done=false;
   document.querySelectorAll('.sidebar .nav-item').forEach(n=>{
@@ -2800,6 +2806,7 @@ function route(view,arg){
 }
 function openModal(type,arg){
   if(SECTION_VIEWS[type]){ route(type,arg); return; }   /* sections become pages */
+  currentModalType=type; currentModalArg=arg;
   const body = document.getElementById('modalBody');
   const modal = document.getElementById('modalContent');
   modal.classList.toggle('wide', type==='kanban');
@@ -2808,9 +2815,20 @@ function openModal(type,arg){
   if(MODAL_INIT[type]) MODAL_INIT[type](arg);
 }
 function closeModal(){
+  currentModalType=null; currentModalArg=undefined;
   document.getElementById('modalBackdrop').classList.remove('show');
   /* refresh the underlying page so edits made in a dialog show immediately */
   if(currentRoute && currentRoute!=='mission' && SECTION_VIEWS[currentRoute]) route(currentRoute, currentRouteArg);
+}
+/* Soft re-render of whatever tab/modal is showing — re-paints from saved state so any
+   change that didn't auto-update appears. Stays on the current view (no full reload). */
+function refreshView(ev){
+  if(ev && ev.currentTarget){ const b=ev.currentTarget; b.classList.remove('spin-once'); void b.offsetWidth; b.classList.add('spin-once'); setTimeout(()=>b.classList.remove('spin-once'),750); }
+  renderAll();
+  const modalOpen = document.getElementById('modalBackdrop').classList.contains('show');
+  if(modalOpen && currentModalType){ openModal(currentModalType, currentModalArg); }
+  else if(currentRoute && currentRoute!=='mission' && SECTION_VIEWS[currentRoute]){ route(currentRoute, currentRouteArg); }
+  toast('View refreshed','success');
 }
 document.getElementById('modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});
 
