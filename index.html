@@ -289,6 +289,19 @@
   .run-pend{color:var(--muted);width:12px;text-align:center;flex-shrink:0}
   .run-live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--accent);font-weight:600;margin-top:3px}
   .run-live a{color:var(--accent);cursor:pointer;margin-left:auto}
+  /* per-item queue notes thread */
+  .qn-wrap{margin-top:8px;border-top:1px dashed var(--border);padding-top:7px}
+  .qn-toggle{border:0;background:none;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;padding:0}
+  .qn-toggle:hover{color:var(--accent)}
+  .qn-caret{font-size:9px}
+  .qn-thread{display:flex;flex-direction:column;gap:5px;margin:7px 0}
+  .qn-empty{font-size:11px;color:var(--muted);font-style:italic}
+  .qn-note{background:var(--panel-2);border:1px solid var(--border);border-radius:7px;padding:6px 9px}
+  .qn-note-text{font-size:12px;color:var(--text);white-space:pre-wrap;word-break:break-word}
+  .qn-note-at{font-size:9.5px;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono',monospace}
+  .qn-add{display:flex;gap:6px;align-items:center}
+  .qn-add input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--border-2);border-radius:6px;padding:6px 9px;color:var(--text);font-family:inherit;font-size:12px;outline:none}
+  .qn-add input:focus{border-color:var(--accent)}
   .chat-typing{display:inline-flex;gap:3px;align-items:center}
   .chat-typing i{width:5px;height:5px;border-radius:50%;background:var(--muted);display:inline-block;animation:think 1.2s infinite}
   .chat-typing i:nth-child(2){animation-delay:.2s}
@@ -4854,6 +4867,35 @@ async function executePlan(planId){
 function clearDoneQueue(){ state.commandQueue=state.commandQueue.filter(t=>t.status==='queued'||t.status==='running'); persist(); renderQueue(); renderAgents(); }
 function retryTask(id){ const t=state.commandQueue.find(x=>x.id===id); if(t) processCommand(t); }
 const QUEUE_STATUS = {queued:{c:'var(--muted)',l:'Queued'},running:{c:'var(--accent)',l:'Running'},done:{c:'var(--green)',l:'Done'},failed:{c:'var(--red)',l:'Failed'},'needs-setup':{c:'var(--amber)',l:'Needs setup'}};
+// Per-item notes thread — jot the topic / your own messages on each queued command.
+const qNotesOpen = new Set();
+const qNoteDraft = {};
+function toggleQueueNotes(id){
+  if(qNotesOpen.has(id)) qNotesOpen.delete(id); else qNotesOpen.add(id);
+  renderQueue();
+  setTimeout(()=>{ const el=document.getElementById('qn-in-'+id); if(el){ el.focus(); el.selectionStart=el.value.length; } },0);
+}
+function addQueueNote(id){
+  const t=state.commandQueue.find(x=>x.id===id); if(!t) return;
+  const el=document.getElementById('qn-in-'+id);
+  const v=((el?el.value:qNoteDraft[id])||'').trim(); if(!v) return;
+  t.notes=t.notes||[]; t.notes.push({text:v, at:_nowTime()});
+  qNoteDraft[id]=''; qNotesOpen.add(id);
+  persist(); renderQueue(); addAudit(`Note on "${t.text.slice(0,40)}"`,'You');
+  setTimeout(()=>{ const e2=document.getElementById('qn-in-'+id); if(e2) e2.focus(); },0);
+}
+function queueNotesHTML(t){
+  const n=(t.notes||[]).length, open=qNotesOpen.has(t.id);
+  let thread='';
+  if(open){
+    const notes = (t.notes||[]).length
+      ? (t.notes||[]).map(nt=>`<div class="qn-note"><div class="qn-note-text">${esc(nt.text)}</div><div class="qn-note-at">${esc(nt.at)}</div></div>`).join('')
+      : '<div class="qn-empty">No notes yet — jot the topic or your thoughts on this command.</div>';
+    thread = `<div class="qn-thread">${notes}</div>`+
+      `<div class="qn-add"><input id="qn-in-${t.id}" type="text" placeholder="Add a note…" value="${esc(qNoteDraft[t.id]||'')}" oninput="qNoteDraft['${t.id}']=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();addQueueNote('${t.id}')}"><button class="btn primary sm" onclick="addQueueNote('${t.id}')">Add</button></div>`;
+  }
+  return `<div class="qn-wrap"><button class="qn-toggle" onclick="toggleQueueNotes('${t.id}')">💬 Notes${n?` (${n})`:''} <span class="qn-caret">${open?'▾':'▸'}</span></button>${thread}</div>`;
+}
 function queueItemHTML(t,compact){
   const s=QUEUE_STATUS[t.status]||QUEUE_STATUS.queued;
   const running = t.status==='running';
@@ -4876,6 +4918,7 @@ function queueItemHTML(t,compact){
       ${stepsHTML}
       ${t.detail&&!compact&&!running?`<div class="q-detail">${esc(t.detail)}</div>`:''}
       <div class="q-foot"><span class="q-status" style="color:${s.c}">${running?'<span class="q-spin"></span>':''}${s.l}</span>${t.status==='failed'?`<button class="q-retry" onclick="retryTask('${t.id}')">Retry</button>`:''}</div>
+      ${!compact?queueNotesHTML(t):''}
     </div></div>`;
 }
 function renderQueue(){
