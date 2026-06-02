@@ -4765,6 +4765,11 @@ function renderChat(){
 }
 function refinePlan(){ const el=document.getElementById('cmdChatInput'); if(el) el.focus(); toast('Tell the Director what to change, then Send','info'); }
 const _nowTime = ()=> new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+// Never let a stalled provider call leave the chat spinning forever.
+function withTimeout(promise, ms, label){
+  let t; const timer = new Promise((_,rej)=>{ t=setTimeout(()=>rej(new Error((label||'Request')+' timed out after '+Math.round(ms/1000)+'s — check your key/provider/network in Integrations, then try again.')), ms); });
+  return Promise.race([promise, timer]).finally(()=>clearTimeout(t));
+}
 async function sendChat(){
   const el = document.getElementById('cmdChatInput'); if(!el) return;
   const v = el.value.trim(); if(!v) return;
@@ -4795,7 +4800,7 @@ async function sendChat(){
   try{
     const transcript = (state.chat||[]).filter(m=>!m.typing).slice(-12)
       .map(m=>`${m.role==='user'?'Keystone':'Director'}: ${m.text}`).join('\n');
-    const reply = await callLLM(directorSystemPrompt(), 'Conversation so far:\n'+transcript+'\n\nReply as the Director.', {maxTokens:700});
+    const reply = await withTimeout(callLLM(directorSystemPrompt(), 'Conversation so far:\n'+transcript+'\n\nReply as the Director.', {maxTokens:700}), 45000, 'Director');
     const {prose, plan} = parseDirectorReply(reply);
     state.chat = state.chat.filter(m=>m.id!==typingId);
     const dmsg = {role:'director', text:prose||'(no response)', at:_nowTime()};
