@@ -255,6 +255,33 @@
   .at-status{font-size:10px;font-weight:600;flex-shrink:0}
   .at-more{font-size:10.5px;color:var(--muted);cursor:pointer;text-align:center;padding-top:2px}
   .at-more:hover{color:var(--accent)}
+  /* Direct Command — chat with the Director */
+  .cmd-mode-toggle{display:inline-flex;gap:2px;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:2px}
+  .cmd-mode-toggle button{border:0;background:none;color:var(--muted);font-size:11px;font-weight:600;padding:4px 9px;border-radius:6px;cursor:pointer;font-family:inherit;transition:.15s}
+  .cmd-mode-toggle button.active{background:var(--accent);color:#fff}
+  .cmd-chat{display:flex;flex-direction:column;gap:9px;max-height:360px;overflow-y:auto;padding:6px 2px;margin:8px 0 10px}
+  .chat-empty{color:var(--muted);font-size:12px;text-align:center;padding:20px 12px;line-height:1.55}
+  .chat-row{display:flex;gap:8px;align-items:flex-start}
+  .chat-row.user{justify-content:flex-end}
+  .chat-ava{width:26px;height:26px;border-radius:50%;background:var(--panel-3);display:grid;place-items:center;font-size:14px;flex-shrink:0}
+  .chat-bubble{max-width:84%;padding:9px 12px;border-radius:12px;font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .chat-bubble.user{background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+  .chat-bubble.dir{background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}
+  .chat-bubble.dir.err{border-color:var(--red);color:var(--red)}
+  .plan-card{margin-top:9px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px;display:flex;flex-direction:column;gap:6px}
+  .plan-step{display:flex;align-items:center;gap:8px;font-size:11.5px}
+  .plan-n{width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700;flex-shrink:0}
+  .plan-agent{font-weight:700;color:var(--accent);font-family:var(--font-head);flex-shrink:0}
+  .plan-action{color:var(--text-2);min-width:0}
+  .plan-actions{display:flex;gap:7px;margin-top:4px;flex-wrap:wrap}
+  .plan-done{font-size:11px;color:var(--green);font-weight:600;margin-top:3px}
+  .plan-done a{color:var(--accent);cursor:pointer}
+  .chat-typing{display:inline-flex;gap:3px;align-items:center}
+  .chat-typing i{width:5px;height:5px;border-radius:50%;background:var(--muted);display:inline-block;animation:think 1.2s infinite}
+  .chat-typing i:nth-child(2){animation-delay:.2s}
+  .chat-typing i:nth-child(3){animation-delay:.4s}
+  .cmd-chat-foot textarea{width:100%;min-height:56px;resize:vertical;background:var(--panel);border:1px solid var(--border-2);border-radius:8px;padding:9px;color:var(--text);font-family:inherit;font-size:13px;outline:none}
+  .cmd-chat-foot textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 20%,transparent)}
   /* a11y: visible keyboard focus */
   button:focus-visible,.iconbtn:focus-visible,.nav-item:focus-visible,.btn:focus-visible,.pg-cmd:focus-visible,.chip:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
   .q-composer{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px}
@@ -1303,21 +1330,43 @@ window.addEventListener('error',function(e){console.error('[Aurora]',e.message,'
     </div>
 
     <div class="panel cmdbox" data-section="command">
-      <div class="panel-head"><h2 class="title display">🎙️ Direct Command</h2></div>
-      <div class="sub">Natural-language instructions</div>
-      <textarea id="cmdInput" placeholder="e.g. 'Pivot this week to AI infra' · 'Send 10 outreach' · 'Pause all'"></textarea>
-      <div class="quick-cmds">
-        <span class="chip" onclick="quick('Generate 5 LinkedIn post ideas about my work this week')">💡 Post ideas</span>
-        <span class="chip action" onclick="quick('Send 10 personalized recruiter outreach messages')">✉️ Outreach</span>
-        <span class="chip target" onclick="quick('Find recruiters hiring for staff engineer roles')">🎯 Find recruiters</span>
-        <span class="chip" onclick="quick('Pause all agents')">⏸️ Pause</span>
+      <div class="panel-head">
+        <h2 class="title display">🎙️ Direct Command</h2>
+        <div class="cmd-mode-toggle">
+          <button id="cmdModeChat" class="active" onclick="setCmdMode('chat')">💬 Chat</button>
+          <button id="cmdModeCommand" onclick="setCmdMode('command')">⚡ Command</button>
+        </div>
       </div>
-      <div class="cmd-foot">
-        <span>Routes via Director · <span class="kbd">⌘ ↵</span></span>
-        <button class="btn primary" onclick="sendCommand()">Run ▶</button>
+
+      <!-- CHAT MODE: converse with the Director, who proposes a workflow you can dispatch to the team -->
+      <div id="cmdChatMode">
+        <div class="cmd-chat" id="cmdChat"></div>
+        <div class="cmd-chat-foot">
+          <textarea id="cmdChatInput" placeholder="Talk to the Director… e.g. 'Plan a week of LinkedIn presence to get noticed by recruiters'"></textarea>
+          <div class="cmd-foot">
+            <span>Chats with the Director · <span class="kbd">⌘ ↵</span></span>
+            <button class="btn primary" onclick="sendChat()">Send ▶</button>
+          </div>
+        </div>
       </div>
-      <div class="cmd-queue-head"><span>Director queue</span><a onclick="route('queue')">Open queue ›</a></div>
-      <div class="cmd-queue" id="cmdQueue"></div>
+
+      <!-- COMMAND MODE: one-shot natural-language command routed straight to an agent -->
+      <div id="cmdCommandMode" style="display:none">
+        <div class="sub">Natural-language instructions</div>
+        <textarea id="cmdInput" placeholder="e.g. 'Pivot this week to AI infra' · 'Send 10 outreach' · 'Pause all'"></textarea>
+        <div class="quick-cmds">
+          <span class="chip" onclick="quick('Generate 5 LinkedIn post ideas about my work this week')">💡 Post ideas</span>
+          <span class="chip action" onclick="quick('Send 10 personalized recruiter outreach messages')">✉️ Outreach</span>
+          <span class="chip target" onclick="quick('Find recruiters hiring for staff engineer roles')">🎯 Find recruiters</span>
+          <span class="chip" onclick="quick('Pause all agents')">⏸️ Pause</span>
+        </div>
+        <div class="cmd-foot">
+          <span>Routes via Director · <span class="kbd">⌘ ↵</span></span>
+          <button class="btn primary" onclick="sendCommand()">Run ▶</button>
+        </div>
+        <div class="cmd-queue-head"><span>Director queue</span><a onclick="route('queue')">Open queue ›</a></div>
+        <div class="cmd-queue" id="cmdQueue"></div>
+      </div>
     </div>
 
     <div class="panel" data-section="schedule">
@@ -4474,6 +4523,7 @@ document.addEventListener('keydown',e=>{
   if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){
     const id=e.target&&e.target.id;
     if(id==='cmdInput'||id==='cmdInputPage'){e.preventDefault();sendCommand(id);}
+    else if(id==='cmdChatInput'){e.preventDefault();sendChat();}
   }
 });
 
@@ -4600,19 +4650,147 @@ async function processCommand(task){
   Object.keys(snap).forEach(n=>{ const a=agentByName(n); if(a){ a.status=snap[n].s||'ok'; a.task=snap[n].t||'Ready'; } });
   renderAgents(); persist(); renderQueue(); renderAll();
 }
+// Build + enqueue a command task (shared by one-shot sendCommand and chat-workflow executePlan).
+function enqueueCommand(v, opts){
+  opts = opts || {};
+  const intent = classifyIntent(v.toLowerCase());
+  const agent = CMD_ROUTING[intent]||'Director';
+  if(!opts.quiet) pushFeed({agent:'You',icon:'🎙️',text:`Command: <b>${esc(v.length>60?v.slice(0,60)+'…':v)}</b>`});
+  addAudit(`Command: ${v.slice(0,80)}`, opts.by||'You');
+  const task = {id:'q'+Date.now()+Math.random().toString(36).slice(2,5), text:v, intent, agent, status:'queued', detail:'', at:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), startedAt:0, finishedAt:0};
+  state.commandQueue.unshift(task);
+  if(state.commandQueue.length>40) state.commandQueue=state.commandQueue.slice(0,40);
+  persist(); renderQueue(); renderAgents();
+  return task;
+}
 function sendCommand(inputId){
   const el = document.getElementById(inputId||'cmdInput'); if(!el) return;
   const v = el.value.trim(); if(!v) return toast('Type a command','warn');
-  const intent = classifyIntent(v.toLowerCase());
-  const agent = CMD_ROUTING[intent]||'Director';
   el.value='';
-  pushFeed({agent:'You',icon:'🎙️',text:`Command: <b>${esc(v.length>60?v.slice(0,60)+'…':v)}</b>`});
-  addAudit(`Command: ${v.slice(0,80)}`,'You');
-  const task = {id:'q'+Date.now(), text:v, intent, agent, status:'queued', detail:'', at:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), startedAt:0, finishedAt:0};
-  state.commandQueue.unshift(task);
-  if(state.commandQueue.length>40) state.commandQueue=state.commandQueue.slice(0,40);
-  persist(); renderQueue(); renderAgents(); toast(`Routed to ${agent}`,'info');
+  const task = enqueueCommand(v);
+  toast(`Routed to ${task.agent}`,'info');
   processCommand(task);
+}
+
+/* ===== Conversation with the Director → dispatch a workflow to the agents ===== */
+function setCmdMode(mode){
+  state.ui = state.ui || {}; state.ui.cmdMode = mode; persist();
+  const cm=document.getElementById('cmdChatMode'), co=document.getElementById('cmdCommandMode');
+  if(cm) cm.style.display = mode==='chat'?'':'none';
+  if(co) co.style.display = mode==='command'?'':'none';
+  const cb=document.getElementById('cmdModeChat'), cc=document.getElementById('cmdModeCommand');
+  if(cb) cb.classList.toggle('active', mode==='chat');
+  if(cc) cc.classList.toggle('active', mode==='command');
+  if(mode==='chat') renderChat();
+}
+function directorSystemPrompt(){
+  const roster = state.agents.map(a=>`- ${a.name} (${a.role})`).join('\n');
+  return KM_CONTEXT + `
+
+You are the Director of Aurora, Keystone's autonomous marketing agency. You coordinate a team of specialist agents:
+${roster}
+
+Capabilities you can dispatch real work to (phrase actions to match these):
+- Lyra → draft LinkedIn posts/content — "Draft N LinkedIn posts about <topic>"
+- Atlas → personalized recruiter outreach DMs — "Send N personalized outreach messages to hot leads"
+- Nova → refresh live analytics from Plausible — "Refresh analytics"
+- Athena → write the weekly strategy brief — "Refresh the weekly strategy brief"
+- Echo → handle inbox replies (manual review)
+- Director (you) → pause/resume agents, answer questions
+
+Hold a natural, concise conversation with Keystone (2-4 sentences). When he wants work done, PROPOSE A WORKFLOW: finish your message with a fenced code block labelled plan holding a JSON array of steps, each {"agent","action"} where action is a concrete imperative matching the capabilities above. Only include steps the team can really do. Example:
+\`\`\`plan
+[{"agent":"Lyra","action":"Draft 3 LinkedIn posts about ERP modernization"},{"agent":"Atlas","action":"Send 5 personalized outreach messages to hot leads"}]
+\`\`\`
+If he is only chatting or asking a question, do NOT include a plan block.`;
+}
+function parseDirectorReply(txt){
+  let plan=null, prose=txt;
+  const m = txt.match(/```(?:plan|json)?\s*([\s\S]*?)```/i);
+  if(m){
+    prose = txt.slice(0, m.index).trim();
+    try{
+      const arr = JSON.parse(m[1].trim());
+      if(Array.isArray(arr)) plan = arr.filter(s=>s && s.action).map(s=>({agent:String(s.agent||'Director'), action:String(s.action)}));
+    }catch(e){ /* malformed JSON → treat whole thing as prose */ }
+  }
+  if(!prose) prose = (plan && plan.length) ? "Here's the workflow I propose:" : txt;
+  return {prose, plan};
+}
+function renderChat(){
+  const box = document.getElementById('cmdChat'); if(!box) return;
+  const chat = state.chat || [];
+  if(!chat.length){ box.innerHTML = '<div class="chat-empty">👋 Talk to the Director. Try:<br>“Plan a week of LinkedIn presence to get noticed by recruiters.”</div>'; return; }
+  box.innerHTML = chat.map(m=>{
+    if(m.role==='user') return `<div class="chat-row user"><div class="chat-bubble user">${esc(m.text)}</div></div>`;
+    let planHTML='';
+    if(m.plan && m.plan.length){
+      const steps = m.plan.map((s,i)=>`<div class="plan-step"><span class="plan-n">${i+1}</span><span class="plan-agent">${esc(s.agent)}</span><span class="plan-action">${esc(s.action)}</span></div>`).join('');
+      const actions = m.executed
+        ? `<div class="plan-done">✓ Workflow dispatched · <a onclick="route('queue')">view queue ›</a></div>`
+        : `<div class="plan-actions"><button class="btn primary sm" onclick="executePlan('${m.planId}')">Execute workflow ▶</button><button class="btn ghost sm" onclick="refinePlan()">Refine</button></div>`;
+      planHTML = `<div class="plan-card">${steps}${actions}</div>`;
+    }
+    const body = m.typing ? '<span class="chat-typing"><i></i><i></i><i></i></span>' : esc(m.text);
+    return `<div class="chat-row dir"><div class="chat-ava">🎩</div><div class="chat-bubble dir${m.error?' err':''}">${body}${planHTML}</div></div>`;
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+}
+function refinePlan(){ const el=document.getElementById('cmdChatInput'); if(el) el.focus(); toast('Tell the Director what to change, then Send','info'); }
+const _nowTime = ()=> new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+async function sendChat(){
+  const el = document.getElementById('cmdChatInput'); if(!el) return;
+  const v = el.value.trim(); if(!v) return;
+  el.value='';
+  state.chat = state.chat || [];
+  state.chat.push({role:'user', text:v, at:_nowTime()});
+  persist(); renderChat();
+  // "execute / go / do it" approves the most recent un-run workflow
+  const pending = [...state.chat].reverse().find(m=>m.role==='director' && m.plan && !m.executed);
+  if(pending && /^(execute|run it|run the workflow|do it|go|proceed|approve|yes,? ?(go|do it|run))\b/i.test(v)){
+    return executePlan(pending.planId);
+  }
+  if(!llmReady()){
+    state.chat.push({role:'director', text:'Connect an LLM in Integrations and I can plan and dispatch work to the team. (Settings → Integrations → paste your key → Save.)', at:_nowTime()});
+    persist(); renderChat(); return;
+  }
+  const typingId = 'typing'+Date.now();
+  state.chat.push({role:'director', text:'', typing:true, id:typingId, at:_nowTime()});
+  persist(); renderChat();
+  try{
+    const transcript = (state.chat||[]).filter(m=>!m.typing).slice(-12)
+      .map(m=>`${m.role==='user'?'Keystone':'Director'}: ${m.text}`).join('\n');
+    const reply = await callLLM(directorSystemPrompt(), 'Conversation so far:\n'+transcript+'\n\nReply as the Director.', {maxTokens:700});
+    const {prose, plan} = parseDirectorReply(reply);
+    state.chat = state.chat.filter(m=>m.id!==typingId);
+    const dmsg = {role:'director', text:prose||'(no response)', at:_nowTime()};
+    if(plan && plan.length){ dmsg.plan=plan; dmsg.planId='pl'+Date.now()+Math.random().toString(36).slice(2,5); dmsg.executed=false; }
+    state.chat.push(dmsg);
+    persist(); renderChat();
+  }catch(e){
+    state.chat = state.chat.filter(m=>m.id!==typingId);
+    state.chat.push({role:'director', text:'⚠️ '+((e&&e.message)||'Something went wrong'), error:true, at:_nowTime()});
+    persist(); renderChat();
+  }
+}
+async function executePlan(planId){
+  const msg = (state.chat||[]).find(m=>m.planId===planId);
+  if(!msg || !msg.plan || msg.executed) return;
+  msg.executed = true; persist(); renderChat();
+  pushFeed({agent:'Director', icon:'🎩', text:`Executing workflow · ${msg.plan.length} step${msg.plan.length===1?'':'s'}`});
+  addAudit(`Director executing workflow (${msg.plan.length} steps)`,'Director');
+  let done=0, setup=0, failed=0;
+  for(const step of msg.plan){
+    const task = enqueueCommand(step.action, {quiet:true, by:'Director'});
+    await processCommand(task);
+    if(task.status==='done') done++;
+    else if(task.status==='needs-setup') setup++;
+    else if(task.status==='failed') failed++;
+  }
+  const summary = `Workflow complete · ${done} done` + (setup?` · ${setup} need setup`:'') + (failed?` · ${failed} failed`:'') + '.';
+  state.chat.push({role:'director', text:summary, at:_nowTime()});
+  persist(); renderChat();
+  toast('Workflow executed','success');
 }
 function clearDoneQueue(){ state.commandQueue=state.commandQueue.filter(t=>t.status==='queued'||t.status==='running'); persist(); renderQueue(); renderAgents(); }
 function retryTask(id){ const t=state.commandQueue.find(x=>x.id===id); if(t) processCommand(t); }
@@ -4656,6 +4834,7 @@ function bootInit(){
   }catch(e){console.warn('pause-init',e)}
   try{buildNetwork()}catch(e){console.error('buildNetwork',e)}
   try{renderAll()}catch(e){console.error('renderAll',e)}
+  try{ state.chat = state.chat || []; setCmdMode((state.ui && state.ui.cmdMode) || 'chat'); }catch(e){console.error('cmd-mode-init',e)}
   try{setLayout(state.layout||'default')}catch(e){console.error('setLayout',e)}
   setTimeout(()=>{try{drawChart()}catch(e){console.error('drawChart',e)}},140);
   try{ const h=(location.hash||'').replace('#',''); if(h && SECTION_VIEWS[h]) route(h); }catch(e){console.warn('hash-route',e)}
