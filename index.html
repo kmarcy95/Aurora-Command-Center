@@ -237,6 +237,13 @@
   .q-retry:hover{background:var(--panel-3)}
   .q-spin{width:10px;height:10px;border:2px solid color-mix(in srgb,var(--accent) 35%,transparent);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:qspin .7s linear infinite}
   @keyframes qspin{to{transform:rotate(360deg)}}
+  .q-step{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:11.5px;color:var(--text-2);line-height:1.4}
+  .q-steps{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+  .q-stepline{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-2);line-height:1.4;animation:fadeIn .2s ease}
+  .q-stepline.active{color:var(--text)}
+  .q-step-agent{font-weight:600;color:var(--accent);font-family:var(--font-head)}
+  .q-check{color:var(--green);font-weight:700;width:12px;text-align:center;flex-shrink:0}
+  .q-pend{color:var(--muted);width:12px;text-align:center;flex-shrink:0}
   /* a11y: visible keyboard focus */
   button:focus-visible,.iconbtn:focus-visible,.nav-item:focus-visible,.btn:focus-visible,.pg-cmd:focus-visible,.chip:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
   .q-composer{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px}
@@ -4436,60 +4443,111 @@ function classifyIntent(low){
   return 'general';
 }
 function llmReady(){return !!(state.integrations.llm && state.integrations.llm.apiKey)}
-const CMD_EXECUTORS = {
-  pause: async ()=>{ if(!state.paused) togglePause(); return {detail:'All agents paused.'}; },
-  resume: async ()=>{ if(state.paused) togglePause(); return {detail:'Agents resumed · schedules active.'}; },
-  content: async (task)=>{
-    if(!llmReady()) return {needsSetup:true, detail:'Connect an LLM in Integrations so Lyra can draft posts.'};
-    const m = task.text.match(/\b([1-9])\b/); const n = m?parseInt(m[1]):3;
-    const sys = KM_CONTEXT+`\n\nYou are Lyra, content creator. Write ${n} distinct LinkedIn post draft(s) in Keystone's voice, 120-200 words each. Separate each post with a line containing only ---. No numbering, no preamble.`;
-    const txt = await callLLM(sys, task.text, {maxTokens:280*n});
-    const chunks = txt.split(/\n-{3,}\n/).map(s=>s.trim()).filter(Boolean);
-    let added=0;
-    chunks.forEach(body=>{ const title=(body.split('\n')[0]||'Draft').replace(/^#+\s*/,'').slice(0,70); state.content.push({id:'c'+Date.now()+Math.random().toString(36).slice(2,5),title,body,status:'draft',scheduledFor:''}); added++; });
-    return {detail:`Lyra drafted ${added} post${added===1?'':'s'} → Pipeline (Drafts).`};
+function analyticsReady(){return !!(state.integrations.analytics && state.integrations.analytics.apiKey)}
+// Each flow returns the ordered steps the routed agent works through for this request.
+// A step's optional run() does the REAL work and may return {detail} (final summary) or
+// {needsSetup, detail} to stop honestly. No step ⇒ purely a "what the agent is doing" beat.
+const CMD_FLOWS = {
+  pause: ()=>[
+    {agent:'Director', label:'Pausing all agents…', ms:450, run:()=>{ if(!state.paused) togglePause(); return {detail:'All agents paused.'}; }}
+  ],
+  resume: ()=>[
+    {agent:'Director', label:'Resuming agents & schedules…', ms:450, run:()=>{ if(state.paused) togglePause(); return {detail:'Agents resumed · schedules active.'}; }}
+  ],
+  content: (task)=>{
+    const m=task.text.match(/\b([1-9])\b/); const n=m?parseInt(m[1]):3;
+    return [
+      {agent:'Lyra', label:'Checking LLM access…', ms:350, run:()=> llmReady()?null:{needsSetup:true, detail:'Connect an LLM in Integrations so Lyra can draft posts.'}},
+      {agent:'Lyra', label:'Reviewing Keystone voice & recent work…', ms:700},
+      {agent:'Lyra', label:`Drafting ${n} LinkedIn post${n===1?'':'s'}…`, ms:0, run: async ()=>{
+        const sys = KM_CONTEXT+`\n\nYou are Lyra, content creator. Write ${n} distinct LinkedIn post draft(s) in Keystone's voice, 120-200 words each. Separate each post with a line containing only ---. No numbering, no preamble.`;
+        const txt = await callLLM(sys, task.text, {maxTokens:280*n});
+        const chunks = txt.split(/\n-{3,}\n/).map(s=>s.trim()).filter(Boolean);
+        let added=0;
+        chunks.forEach(body=>{ const title=(body.split('\n')[0]||'Draft').replace(/^#+\s*/,'').slice(0,70); state.content.push({id:'c'+Date.now()+Math.random().toString(36).slice(2,5),title,body,status:'draft',scheduledFor:''}); added++; });
+        return {detail:`Lyra drafted ${added} post${added===1?'':'s'} → Pipeline (Drafts).`};
+      }},
+      {agent:'Lyra', label:'Saving to Pipeline (Drafts)…', ms:500}
+    ];
   },
-  outreach: async ()=>{
-    if(!llmReady()) return {needsSetup:true, detail:'Connect an LLM in Integrations so Atlas can personalize DMs.'};
-    await SCHEDULE_RUNNERS.outreach({});
-    return {detail:'Atlas drafted DMs for hot/warm contacts → review in CRM.'};
+  outreach: (task)=>{
+    const m=task.text.match(/\b(\d{1,2})\b/); const n=m?Math.min(parseInt(m[1]),20):3;
+    return [
+      {agent:'Atlas', label:'Checking LLM access…', ms:350, run:()=> llmReady()?null:{needsSetup:true, detail:'Connect an LLM in Integrations so Atlas can personalize DMs.'}},
+      {agent:'Atlas', label:'Pulling hot & warm contacts…', ms:650},
+      {agent:'Atlas', label:`Drafting & personalizing ${n} DM${n===1?'':'s'}…`, ms:0, run: async ()=>{ await SCHEDULE_RUNNERS.outreach({}); return {detail:'Atlas drafted DMs for hot/warm contacts → review in CRM.'}; }},
+      {agent:'Atlas', label:'Queuing for review…', ms:500}
+    ];
   },
-  find: async ()=> ({needsSetup:true, detail:'Recruiter search needs a LinkedIn/data source — not wired yet. Add contacts manually in CRM for now.'}),
-  analytics: async ()=>{
-    if(!(state.integrations.analytics && state.integrations.analytics.apiKey)) return {needsSetup:true, detail:'Connect Plausible in Integrations to pull live analytics.'};
-    await fetchPlausibleData(true); return {detail:'Nova refreshed analytics from Plausible.'};
-  },
-  strategy: async ()=>{
-    if(!llmReady()) return {needsSetup:true, detail:'Connect an LLM in Integrations so Athena can write the brief.'};
-    await SCHEDULE_RUNNERS.cycle({});
-    return {detail:'Athena refreshed the weekly strategy brief (see Live Activity).'};
-  },
-  engage: async ()=> ({detail:'Echo handles replies from the Inbox — open a message and use Reply.'}),
-  general: async (task)=>{
-    if(!llmReady()) return {needsSetup:true, detail:'Connect an LLM in Integrations so the Director can act on free-form commands.'};
-    const sys = KM_CONTEXT+"\n\nYou are the Director of an autonomous marketing agency. In 2-3 sentences, say how you'd action this command and which agent you'd route it to.";
-    const txt = await callLLM(sys, task.text, {maxTokens:220});
-    return {detail:txt.trim()};
-  }
+  find: ()=>[
+    {agent:'Atlas', label:'Searching recruiter sources…', ms:800, run:()=> ({needsSetup:true, detail:'Recruiter search needs a LinkedIn/data source — not wired yet. Add contacts manually in CRM for now.'})}
+  ],
+  analytics: ()=>[
+    {agent:'Nova', label:'Checking Plausible access…', ms:350, run:()=> analyticsReady()?null:{needsSetup:true, detail:'Connect Plausible in Integrations to pull live analytics.'}},
+    {agent:'Nova', label:'Fetching visitor & goal data…', ms:0, run: async ()=>{ await fetchPlausibleData(true); return {detail:'Nova refreshed analytics from Plausible.'}; }},
+    {agent:'Nova', label:'Updating dashboards…', ms:500}
+  ],
+  strategy: ()=>[
+    {agent:'Athena', label:'Checking LLM access…', ms:350, run:()=> llmReady()?null:{needsSetup:true, detail:'Connect an LLM in Integrations so Athena can write the brief.'}},
+    {agent:'Athena', label:'Reviewing pipeline & performance…', ms:700},
+    {agent:'Athena', label:'Writing the weekly strategy brief…', ms:0, run: async ()=>{ await SCHEDULE_RUNNERS.cycle({}); return {detail:'Athena refreshed the weekly strategy brief (see Live Activity).'}; }}
+  ],
+  engage: ()=>[
+    {agent:'Echo', label:'Scanning inbox for replies…', ms:650, run:()=> ({needsSetup:true, detail:'Echo replies from the Inbox — open a message there and use Reply.'})}
+  ],
+  general: (task)=>[
+    {agent:'Director', label:'Checking LLM access…', ms:350, run:()=> llmReady()?null:{needsSetup:true, detail:'Connect an LLM in Integrations so the Director can act on free-form commands.'}},
+    {agent:'Director', label:'Interpreting command…', ms:600},
+    {agent:'Director', label:'Routing & drafting action plan…', ms:0, run: async ()=>{
+      const sys = KM_CONTEXT+"\n\nYou are the Director of an autonomous marketing agency. In 2-3 sentences, say how you'd action this command and which agent you'd route it to.";
+      const txt = await callLLM(sys, task.text, {maxTokens:220});
+      return {detail:'Plan · '+txt.trim()};
+    }}
+  ]
 };
+function buildWorkflow(task){
+  const pre=[{agent:'Director', label:'Analyzing request…', ms:500}];
+  if(task.agent!=='Director') pre.push({agent:'Director', label:`Routing to ${task.agent}…`, ms:450});
+  return pre.concat((CMD_FLOWS[task.intent]||CMD_FLOWS.general)(task));
+}
 function agentByName(name){return state.agents.find(a=>a.name===name)}
+const delay = ms => new Promise(r=>setTimeout(r, ms));
 async function processCommand(task){
-  task.status='running'; task.startedAt=Date.now(); persist(); renderQueue();
-  const ag = agentByName(task.agent); let prevS, prevT;
-  if(ag && task.intent!=='pause' && task.intent!=='resume'){ prevS=ag.status; prevT=ag.task; ag.status='busy'; ag.task='Working · '+task.text.slice(0,40); renderAgents(); }
+  task.status='running'; task.startedAt=Date.now(); task.steps=[]; task.currentStep=''; task.currentAgent=task.agent; persist(); renderQueue();
+  const steps = buildWorkflow(task);
+  const snap = {};   // remember each touched agent's prior state so we can restore it
+  const touch = (name)=>{ const a=agentByName(name); if(a && task.intent!=='pause' && task.intent!=='resume' && !(name in snap)) snap[name]={s:a.status,t:a.task}; };
+  let finalDetail='Done.', terminal='done';
   try{
-    const res = await (CMD_EXECUTORS[task.intent]||CMD_EXECUTORS.general)(task);
-    task.status = (res&&res.needsSetup) ? 'needs-setup' : 'done';
-    task.detail = (res&&res.detail) || 'Done.';
-    pushFeed({agent:task.agent, icon: task.status==='needs-setup'?'⚙️':'✅', text:`${task.status==='needs-setup'?'Needs setup':'Done'} · ${esc(task.detail)}`});
-    if(task.status==='done') pushNotif({icon:'🎩',body:`<b>${esc(task.agent)}</b> finished: ${esc(task.text.slice(0,50))}`});
+    for(const st of steps){
+      if(task.steps.length) task.steps[task.steps.length-1].done=true;   // close prior step
+      task.steps.push({agent:st.agent, label:st.label, done:false});
+      task.currentStep=st.label; task.currentAgent=st.agent;
+      touch(st.agent);
+      const a=agentByName(st.agent);
+      if(a && task.intent!=='pause' && task.intent!=='resume'){ a.status='busy'; a.task=st.label; renderAgents(); }
+      pushFeed({agent:st.agent, icon:'⚙️', text:esc(st.label)});
+      persist(); renderQueue();
+      let res=null;
+      if(st.run) res = await st.run(task);      // real work runs at its step (spinner shows)
+      if(st.ms) await delay(st.ms);
+      if(res){
+        if(res.detail) finalDetail=res.detail;
+        if(res.needsSetup){ terminal='needs-setup'; break; }   // honest stop — no fake "Done"
+      }
+    }
+    if(task.steps.length) task.steps[task.steps.length-1].done=true;
+    task.status=terminal; task.detail=finalDetail; task.currentStep='';
+    pushFeed({agent:task.agent, icon: terminal==='needs-setup'?'⚙️':'✅', text:`${terminal==='needs-setup'?'Needs setup':'Done'} · ${esc(finalDetail)}`});
+    if(terminal==='done') pushNotif({icon:'🎩',body:`<b>${esc(task.agent)}</b> finished: ${esc(task.text.slice(0,50))}`});
   }catch(e){
-    task.status='failed'; task.detail=(e&&e.message)?String(e.message).slice(0,160):'Failed';
-    pushFeed({agent:task.agent, icon:'⚠️', text:`Failed · ${esc(task.detail)}`});
+    task.status='failed'; task.detail=(e&&e.message)?String(e.message).slice(0,160):'Failed'; task.currentStep='';
+    if(task.steps.length) task.steps[task.steps.length-1].done=true;
+    pushFeed({agent:task.currentAgent||task.agent, icon:'⚠️', text:`Failed · ${esc(task.detail)}`});
   }
   task.finishedAt=Date.now();
-  if(ag && task.intent!=='pause' && task.intent!=='resume'){ ag.status=prevS||'ok'; ag.task=prevT||'Ready'; renderAgents(); }
-  persist(); renderQueue(); renderAll();
+  Object.keys(snap).forEach(n=>{ const a=agentByName(n); if(a){ a.status=snap[n].s||'ok'; a.task=snap[n].t||'Ready'; } });
+  renderAgents(); persist(); renderQueue(); renderAll();
 }
 function sendCommand(inputId){
   const el = document.getElementById(inputId||'cmdInput'); if(!el) return;
@@ -4510,13 +4568,26 @@ function retryTask(id){ const t=state.commandQueue.find(x=>x.id===id); if(t) pro
 const QUEUE_STATUS = {queued:{c:'var(--muted)',l:'Queued'},running:{c:'var(--accent)',l:'Running'},done:{c:'var(--green)',l:'Done'},failed:{c:'var(--red)',l:'Failed'},'needs-setup':{c:'var(--amber)',l:'Needs setup'}};
 function queueItemHTML(t,compact){
   const s=QUEUE_STATUS[t.status]||QUEUE_STATUS.queued;
+  const running = t.status==='running';
+  // compact (sidebar) = one animated current-step line; full (page) = accumulating checklist
+  let stepsHTML='';
+  if(compact){
+    if(running && t.currentStep) stepsHTML=`<div class="q-step"><span class="q-spin"></span><span class="q-step-agent">${esc(t.currentAgent||t.agent)}</span> ${esc(t.currentStep)}</div>`;
+  } else if(t.steps && t.steps.length){
+    stepsHTML=`<div class="q-steps">${t.steps.map((st,i)=>{
+      const active = running && i===t.steps.length-1 && !st.done;
+      const mark = active?'<span class="q-spin"></span>':(st.done?'<span class="q-check">✓</span>':'<span class="q-pend">•</span>');
+      return `<div class="q-stepline${active?' active':''}">${mark}<span class="q-step-agent">${esc(st.agent)}</span> ${esc(st.label)}</div>`;
+    }).join('')}</div>`;
+  }
   return `<div class="q-item">
     <span class="q-dot" style="background:${s.c}"></span>
     <div class="q-body">
       <div class="q-top"><span class="q-agent">${esc(t.agent)}</span><span class="q-at">${esc(t.at)}</span></div>
       <div class="q-text">${esc(t.text)}</div>
-      ${t.detail&&!compact?`<div class="q-detail">${esc(t.detail)}</div>`:''}
-      <div class="q-foot"><span class="q-status" style="color:${s.c}">${t.status==='running'?'<span class="q-spin"></span>':''}${s.l}</span>${t.status==='failed'?`<button class="q-retry" onclick="retryTask('${t.id}')">Retry</button>`:''}</div>
+      ${stepsHTML}
+      ${t.detail&&!compact&&!running?`<div class="q-detail">${esc(t.detail)}</div>`:''}
+      <div class="q-foot"><span class="q-status" style="color:${s.c}">${running?'<span class="q-spin"></span>':''}${s.l}</span>${t.status==='failed'?`<button class="q-retry" onclick="retryTask('${t.id}')">Retry</button>`:''}</div>
     </div></div>`;
 }
 function renderQueue(){
