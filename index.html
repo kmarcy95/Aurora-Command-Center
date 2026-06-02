@@ -276,6 +276,19 @@
   .plan-actions{display:flex;gap:7px;margin-top:4px;flex-wrap:wrap}
   .plan-done{font-size:11px;color:var(--green);font-weight:600;margin-top:3px}
   .plan-done a{color:var(--accent);cursor:pointer}
+  .plan-hint{font-size:10.5px;color:var(--muted);margin-top:1px}
+  .plan-card.run{gap:5px}
+  .run-row{display:flex;align-items:center;gap:7px;font-size:11.5px;line-height:1.35}
+  .run-n{width:16px;height:16px;border-radius:50%;background:var(--panel-3);color:var(--muted);display:grid;place-items:center;font-size:9px;font-weight:700;flex-shrink:0}
+  .run-act{color:var(--text-2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .run-row.running .run-act{color:var(--text)}
+  .run-sub{font-size:10.5px;color:var(--accent);flex-shrink:0;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .run-ok{color:var(--green);font-weight:700;width:12px;text-align:center;flex-shrink:0}
+  .run-warn{color:var(--amber);width:12px;text-align:center;flex-shrink:0}
+  .run-fail{color:var(--red);width:12px;text-align:center;flex-shrink:0}
+  .run-pend{color:var(--muted);width:12px;text-align:center;flex-shrink:0}
+  .run-live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--accent);font-weight:600;margin-top:3px}
+  .run-live a{color:var(--accent);cursor:pointer;margin-left:auto}
   .chat-typing{display:inline-flex;gap:3px;align-items:center}
   .chat-typing i{width:5px;height:5px;border-radius:50%;background:var(--muted);display:inline-block;animation:think 1.2s infinite}
   .chat-typing i:nth-child(2){animation-delay:.2s}
@@ -4698,7 +4711,7 @@ Capabilities you can dispatch real work to (phrase actions to match these):
 - Echo → handle inbox replies (manual review)
 - Director (you) → pause/resume agents, answer questions
 
-Hold a natural, concise conversation with Keystone (2-4 sentences). When he wants work done, PROPOSE A WORKFLOW: finish your message with a fenced code block labelled plan holding a JSON array of steps, each {"agent","action"} where action is a concrete imperative matching the capabilities above. Only include steps the team can really do. Example:
+Hold a natural, concise conversation with Keystone (2-4 sentences). When he wants work done, PROPOSE A WORKFLOW: write a one-line summary, then ALWAYS ask him to confirm before doing anything — end your prose with a clear question like "Want me to run this? Just say yes and I'll route it to the team." THEN append a fenced code block labelled plan holding a JSON array of steps, each {"agent","action"} where action is a concrete imperative matching the capabilities above. Only include steps the team can really do. Never execute anything yourself — you only propose; Keystone's "yes" is what triggers the agents. Example:
 \`\`\`plan
 [{"agent":"Lyra","action":"Draft 3 LinkedIn posts about ERP modernization"},{"agent":"Atlas","action":"Send 5 personalized outreach messages to hot leads"}]
 \`\`\`
@@ -4714,7 +4727,7 @@ function parseDirectorReply(txt){
       if(Array.isArray(arr)) plan = arr.filter(s=>s && s.action).map(s=>({agent:String(s.agent||'Director'), action:String(s.action)}));
     }catch(e){ /* malformed JSON → treat whole thing as prose */ }
   }
-  if(!prose) prose = (plan && plan.length) ? "Here's the workflow I propose:" : txt;
+  if(!prose) prose = (plan && plan.length) ? "Here's the workflow I propose. Want me to run it? Reply yes and I'll route it to the team." : txt;
   return {prose, plan};
 }
 function renderChat(){
@@ -4724,11 +4737,25 @@ function renderChat(){
   box.innerHTML = chat.map(m=>{
     if(m.role==='user') return `<div class="chat-row user"><div class="chat-bubble user">${esc(m.text)}</div></div>`;
     let planHTML='';
-    if(m.plan && m.plan.length){
+    if(m.run){
+      // live (or finished) run — mirrors each agent step as it works
+      const rows = m.run.map((r,i)=>{
+        const mark = r.status==='running' ? '<span class="q-spin"></span>'
+          : r.status==='done' ? '<span class="run-ok">✓</span>'
+          : r.status==='needs-setup' ? '<span class="run-warn">⚙</span>'
+          : r.status==='failed' ? '<span class="run-fail">✕</span>'
+          : '<span class="run-pend">•</span>';
+        const sub = (r.status==='running' && r.step) ? `<span class="run-sub">${esc(r.step)}</span>` : '';
+        return `<div class="run-row ${r.status}"><span class="run-n">${i+1}</span>${mark}<span class="plan-agent">${esc(r.agent)}</span><span class="run-act">${esc(r.action)}</span>${sub}</div>`;
+      }).join('');
+      const finished = m.run.every(r=>r.status==='done'||r.status==='needs-setup'||r.status==='failed');
+      const foot = finished
+        ? `<div class="plan-done">✓ Workflow finished · <a onclick="route('queue')">view queue ›</a></div>`
+        : `<div class="run-live"><span class="q-spin"></span> Working… <a onclick="route('queue')">open queue ›</a></div>`;
+      planHTML = `<div class="plan-card run">${rows}${foot}</div>`;
+    } else if(m.plan && m.plan.length){
       const steps = m.plan.map((s,i)=>`<div class="plan-step"><span class="plan-n">${i+1}</span><span class="plan-agent">${esc(s.agent)}</span><span class="plan-action">${esc(s.action)}</span></div>`).join('');
-      const actions = m.executed
-        ? `<div class="plan-done">✓ Workflow dispatched · <a onclick="route('queue')">view queue ›</a></div>`
-        : `<div class="plan-actions"><button class="btn primary sm" onclick="executePlan('${m.planId}')">Execute workflow ▶</button><button class="btn ghost sm" onclick="refinePlan()">Refine</button></div>`;
+      const actions = `<div class="plan-actions"><button class="btn primary sm" onclick="executePlan('${m.planId}')">Execute workflow ▶</button><button class="btn ghost sm" onclick="refinePlan()">Refine</button></div><div class="plan-hint">…or just reply “yes” to run it · “no” to hold</div>`;
       planHTML = `<div class="plan-card">${steps}${actions}</div>`;
     }
     const body = m.typing ? '<span class="chat-typing"><i></i><i></i><i></i></span>' : esc(m.text);
@@ -4745,10 +4772,18 @@ async function sendChat(){
   state.chat = state.chat || [];
   state.chat.push({role:'user', text:v, at:_nowTime()});
   persist(); renderChat();
-  // "execute / go / do it" approves the most recent un-run workflow
+  // A natural "yes" (or execute verb) approves the most recent un-run workflow; "no" holds it.
   const pending = [...state.chat].reverse().find(m=>m.role==='director' && m.plan && !m.executed);
-  if(pending && /^(execute|run it|run the workflow|do it|go|proceed|approve|yes,? ?(go|do it|run))\b/i.test(v)){
-    return executePlan(pending.planId);
+  if(pending){
+    const words = v.split(/\s+/).length;
+    const strong = /^(execute|run it|run the workflow|do it|implement( it)?|go ahead|proceed|approve(d)?|make it happen)\b/i.test(v);
+    const softYes = /^(y|yes|yep|yeah|yup|ya|sure|ok|okay|k|go|confirm|sounds good|let'?s do it|please do|absolutely)\b/i.test(v) && words<=4;
+    const no = /^(n|no|nope|not now|cancel|stop|hold off|don'?t|wait|later|nah)\b/i.test(v) && words<=4;
+    if(strong || softYes) return executePlan(pending.planId);
+    if(no){
+      state.chat.push({role:'director', text:"No problem — I'll hold off. Tell me what to change and I'll re-plan.", at:_nowTime()});
+      persist(); renderChat(); return;
+    }
   }
   if(!llmReady()){
     state.chat.push({role:'director', text:'Connect an LLM in Integrations and I can plan and dispatch work to the team. (Settings → Integrations → paste your key → Save.)', at:_nowTime()});
@@ -4776,16 +4811,35 @@ async function sendChat(){
 async function executePlan(planId){
   const msg = (state.chat||[]).find(m=>m.planId===planId);
   if(!msg || !msg.plan || msg.executed) return;
-  msg.executed = true; persist(); renderChat();
+  msg.executed = true;
+  // live run record the chat renders in real time (mirrors each dispatched task as it works)
+  msg.run = msg.plan.map(s=>({agent:s.agent, action:s.action, status:'queued', step:''}));
+  setCmdMode('chat');                 // make sure you're watching the chat while it runs
+  persist(); renderChat();
   pushFeed({agent:'Director', icon:'🎩', text:`Executing workflow · ${msg.plan.length} step${msg.plan.length===1?'':'s'}`});
   addAudit(`Director executing workflow (${msg.plan.length} steps)`,'Director');
+  const tasks = [];
+  // poll the live task objects so the chat card shows each agent's current sub-step as it happens
+  const poll = setInterval(()=>{
+    tasks.forEach((t,i)=>{ if(t && msg.run[i]){ if(t.status==='running'){ msg.run[i].status='running'; msg.run[i].step=t.currentStep||''; } else { msg.run[i].status=t.status; msg.run[i].step=''; } } });
+    renderChat();
+  }, 240);
   let done=0, setup=0, failed=0;
-  for(const step of msg.plan){
-    const task = enqueueCommand(step.action, {quiet:true, by:'Director'});
-    await processCommand(task);
-    if(task.status==='done') done++;
-    else if(task.status==='needs-setup') setup++;
-    else if(task.status==='failed') failed++;
+  try{
+    for(let i=0;i<msg.plan.length;i++){
+      msg.run[i].status='running'; renderChat();
+      const task = enqueueCommand(msg.plan[i].action, {quiet:true, by:'Director'});
+      msg.run[i].agent = task.agent;   // show the real routed specialist
+      tasks[i] = task;
+      await processCommand(task);
+      msg.run[i].status = task.status; msg.run[i].step='';
+      if(task.status==='done') done++;
+      else if(task.status==='needs-setup') setup++;
+      else if(task.status==='failed') failed++;
+      renderChat();
+    }
+  } finally {
+    clearInterval(poll);
   }
   const summary = `Workflow complete · ${done} done` + (setup?` · ${setup} need setup`:'') + (failed?` · ${failed} failed`:'') + '.';
   state.chat.push({role:'director', text:summary, at:_nowTime()});
