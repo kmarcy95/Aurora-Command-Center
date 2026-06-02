@@ -2828,7 +2828,11 @@ function refreshView(ev){
   const modalOpen = document.getElementById('modalBackdrop').classList.contains('show');
   if(modalOpen && currentModalType){ openModal(currentModalType, currentModalArg); }
   else if(currentRoute && currentRoute!=='mission' && SECTION_VIEWS[currentRoute]){ route(currentRoute, currentRouteArg); }
-  toast('View refreshed','success');
+  // also pull live integrations when connected — silent no-op otherwise (re-renders on its own when done)
+  const an = state.integrations.analytics;
+  const pullingLive = !!(an && an.provider==='plausible' && an.apiKey && !state.paused);
+  if(pullingLive) fetchPlausibleData(true);
+  toast(pullingLive?'Refreshed · pulling live data…':'View refreshed','success');
 }
 document.getElementById('modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});
 
