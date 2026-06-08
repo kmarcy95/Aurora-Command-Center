@@ -1481,7 +1481,12 @@ const DEFAULTS = {
     {id:"c4",title:"Most 'AI agent' demos fall apart on real processes",status:"draft",scheduledFor:"",body:"Most 'AI agent' demos fall apart the moment they touch a real business process. Here's what I think is missing.\n\nThe demos look great because the domain is generic. Real finance and ops work isn't generic — it's full of edge cases, exceptions, and rules that live in someone's head.\n\nAn agent that doesn't know your domain is just an expensive autocomplete. An agent that does — because you taught it once, properly — is genuine leverage.\n\nThat's the bias in everything I build: teach the agents the domain first, then let them work.\n\nObservability isn't a nice-to-have for agentic systems. It's the difference between a toy and a tool.\n\nMore at kmarcy95.github.io/business-landing-page"},
     {id:"c5",title:"Three models, one dataset — which predicts house prices best?",status:"draft",scheduledFor:"",body:"Three models, one dataset, one honest question: which ensemble method actually predicts house prices best?\n\nI put XGBoost, Gradient Boosting, and Linear Regression head-to-head on residential sale prices — same feature engineering, same data, no thumb on the scale.\n\nThe interesting part wasn't the winner. It was the diagnostics. The predicted-vs-actual plots show where each model breaks down — and the failure modes differ. Linear regression misses the nonlinear interactions. The boosted models tighten up, but you pay in interpretability.\n\nFor a finance team, that tradeoff matters more than a leaderboard score. Sometimes the slightly-worse model you can explain to an auditor beats the better one you can't.\n\nCase study at kmarcy95.github.io/business-landing-page"},
     {id:"c6",title:"The highest-ROI thing I built isn't AI — it's an Excel add-in",status:"draft",scheduledFor:"",body:"The highest-ROI thing I've built for finance teams isn't AI. It's an Excel add-in.\n\nThere's pressure right now to make everything agentic, everything AI. I build plenty of that. But here's the unglamorous truth from years in the ERP trenches:\n\nFinance and ops teams don't need a moonshot. They need the spreadsheet pain to stop.\n\nAn Excel add-in that automates a reconciliation. A D365 template that kills three days of manual setup. A single-file app that does one job well. That stuff doesn't trend — but it's what gets adopted, because it meets people where they already work.\n\nI optimize for adoption, not applause.\n\nThe boring, useful things I've shipped: kmarcy95.github.io/business-landing-page"},
-    {id:"c7",title:"For the recruiters in my network — what I'm looking for",status:"draft",scheduledFor:"",body:"For the recruiters in my network — here's exactly what I'm looking for, so we don't waste each other's time.\n\nBackground: years implementing Dynamics 365 Finance & Operations across mid-market and enterprise. Then a pivot to building — Blazor apps, AI workflows, Excel automation, agentic systems.\n\nWhat I'm open to: senior implementation, solutions-engineering, and applied-AI roles. The common thread — roles where the work actually ships, not where it ends in a deck.\n\nWhat I bring that's rare: ERP depth most AI engineers don't have, plus the building ability most ERP consultants don't have. I sit between the finance team and the system and translate both directions.\n\nAlso taking select consulting through KM Consulting.\n\nIf that lines up with something — kmarcy95.github.io/business-landing-page"}
+    {id:"c7",title:"For the recruiters in my network — what I'm looking for",status:"draft",scheduledFor:"",body:"For the recruiters in my network — here's exactly what I'm looking for, so we don't waste each other's time.\n\nBackground: years implementing Dynamics 365 Finance & Operations across mid-market and enterprise. Then a pivot to building — Blazor apps, AI workflows, Excel automation, agentic systems.\n\nWhat I'm open to: senior implementation, solutions-engineering, and applied-AI roles. The common thread — roles where the work actually ships, not where it ends in a deck.\n\nWhat I bring that's rare: ERP depth most AI engineers don't have, plus the building ability most ERP consultants don't have. I sit between the finance team and the system and translate both directions.\n\nAlso taking select consulting through KM Consulting.\n\nIf that lines up with something — kmarcy95.github.io/business-landing-page"},
+    {id:"c8",title:"Most variance reports just tell you the number changed",status:"draft",scheduledFor:"",body:"Most 'variance reports' just tell you the number changed.\n\nThey don't tell you why — was it price, volume, mix, or yield?\n\nThe number is trivia. The decomposition is the job.\n\nIf your month-end close ends at 'unfavorable $40K' and not '$40K from material price — here's the supplier,' you're reporting, not analyzing.\n\nI build the tooling that does the decomposition for you — hand it the D365 export, get back the variance narrative.\n\nMore at kmarcy95.github.io/business-landing-page"},
+    {id:"c9",title:"The hardest part of a Great Plains to SAP migration isn't the data",status:"draft",scheduledFor:"",body:"The hardest part of a Great Plains → SAP S/4HANA migration isn't the data. It's the cost model.\n\nGP let you fudge it. S/4 with Material Ledger won't — standard cost, actual costing runs, and your BOM rollups all have to actually tie.\n\nI just built the crosswalk + cutover playbook for exactly this: the GP cost buckets that don't map cleanly, the Material Ledger decisions you can't walk back, the cutover sequence that keeps month-end alive.\n\nIf you're staring down a manufacturing ERP migration and the cost accounting piece is what scares you — that's the part I do.\n\nkmarcy95.github.io/business-landing-page"},
+    {id:"c10",title:"I stopped waiting for the FP&A AI tool and built my own",status:"draft",scheduledFor:"",body:"I stopped waiting for 'the FP&A AI tool' and just built my own command center.\n\nStandard costing engine. Variance explainer. Capacity, profitability, and CVP modules. All tested, all running.\n\nThe lesson from years in the ERP trenches: finance people who can build the tool beat the ones waiting to buy it. You don't need to be an engineer — you need to be specific about the workflow.\n\nDomain logic stays human. The busywork goes to the machine.\n\nThe working version is at kmarcy95.github.io/business-landing-page"},
+    {id:"c11",title:"A standard cost isn't a guess — it's a contract",status:"draft",scheduledFor:"",body:"A standard cost isn't a guess. It's a contract.\n\nIt says: this is what the part should cost. Every variance after that is the business renegotiating that contract in real time — and the renegotiation is where the money hides.\n\nTeams that set standards once a year and forget them are flying blind for eleven months. Roll them with intent. Explain the variance with rigor. That's the whole game.\n\nI build the systems that make that discipline automatic instead of heroic.\n\nkmarcy95.github.io/business-landing-page"},
+    {id:"c12",title:"AI won't replace cost accountants — but this will",status:"draft",scheduledFor:"",body:"AI won't replace cost accountants.\n\nBut a cost accountant who hands an agent the D365 export and gets back a written variance narrative in 30 seconds will replace the one who doesn't.\n\nI'm building that workflow now — the domain logic stays human, the busywork goes to the machine. The edge isn't the model. It's knowing exactly which question to ask it.\n\nThat's the gap I sit in: deep enough in cost accounting to know the right question, technical enough to build the thing that answers it.\n\nkmarcy95.github.io/business-landing-page"}
   ],
   campaigns: [],
   notifications: [],
@@ -3073,7 +3078,7 @@ const MODAL_RENDERS = {
   },
   kanban:()=>`<h3 class="display">📋 Content Pipeline</h3>
     <p style="color:var(--muted);font-size:12.5px">Drag cards between columns · click a card to edit · ${state.integrations.linkedin.connected?'<span style="color:var(--green)">● LinkedIn connected — Approve will offer to publish</span>':'<span style="color:var(--amber)">⚠ LinkedIn not wired — only simulating</span>'}</p>
-    <div style="display:flex;gap:6px;margin-top:6px"><button class="btn primary sm" onclick="openModal('addContent')">＋ New draft</button><button class="btn ghost sm" onclick="loadKMContentPack()">📚 Load KM content pack (7 real posts)</button></div>
+    <div style="display:flex;gap:6px;margin-top:6px"><button class="btn primary sm" onclick="openModal('addContent')">＋ New draft</button><button class="btn ghost sm" onclick="loadKMContentPack()">📚 Load KM content pack (12 real posts)</button></div>
     <div class="kanban" id="kanbanBoard">
       ${['draft','pending','approved','published'].map(s=>`
         <div class="kanban-col" data-status="${s}" ondragover="kanbanOver(event)" ondragleave="kanbanLeave(event)" ondrop="kanbanDrop(event)">
@@ -3557,14 +3562,19 @@ function createAgent(){
 
 /* ===== Content actions ===== */
 function loadKMContentPack(){
-  if(!confirm('Load the 7 real KM Consulting posts? This replaces your current content library.')) return;
-  state.content = JSON.parse(JSON.stringify(DEFAULTS._samplePosts || []));
+  const have = new Set(state.content.map(p=>p.id));
+  const incoming = JSON.parse(JSON.stringify(DEFAULTS._samplePosts || []));
+  const toAdd = incoming.filter(p=>!have.has(p.id));
+  const openKanban = ()=>{ if(document.getElementById('modalBackdrop').classList.contains('show')) openModal('kanban'); };
+  if(!toAdd.length){ toast('All KM pack posts are already in your pipeline','info'); openKanban(); return; }
+  if(!confirm(`Add ${toAdd.length} KM Consulting post${toAdd.length>1?'s':''} to your pipeline as drafts? Your existing posts stay put.`)) return;
+  state.content = state.content.concat(toAdd);
   persist();
   renderAll();
-  if(document.getElementById('modalBackdrop').classList.contains('show')) openModal('kanban');
-  toast('7 real posts loaded into pipeline','success');
-  addAudit('Loaded KM Consulting content pack (7 posts)','Lyra');
-  pushNotif({icon:'📚',body:'<b>Lyra</b> loaded 7 real posts based on your projects'});
+  openKanban();
+  toast(`${toAdd.length} post${toAdd.length>1?'s':''} added · review before publishing`,'success');
+  addAudit(`Added ${toAdd.length} KM Consulting post(s) to pipeline`,'Lyra');
+  pushNotif({icon:'📚',body:`<b>Lyra</b> added ${toAdd.length} new draft${toAdd.length>1?'s':''} for your review`});
 }
 
 function startFresh(){
@@ -4489,7 +4499,7 @@ const PALETTE_ACTIONS = [
   {sec:"Actions",icon:"✉️",label:"Send outreach batch (10)",act:()=>{quick('Send 10 personalized outreach messages');sendCommand()}},
   {sec:"Actions",icon:"🤖",label:"Add custom agent",act:()=>openModal('addAgent')},
   {sec:"Actions",icon:"⏱",label:"Add scheduled task",act:()=>openModal('addSchedule')},
-  {sec:"Actions",icon:"📚",label:"Load KM content pack (7 real posts)",act:loadKMContentPack},
+  {sec:"Actions",icon:"📚",label:"Load KM content pack (12 real posts)",act:loadKMContentPack},
   {sec:"Navigate",icon:"👥",label:"Open CRM",act:()=>openModal('crm')},
   {sec:"Navigate",icon:"🌐",label:"Page visits",act:()=>openModal('visits')},
   {sec:"Navigate",icon:"📋",label:"Content pipeline (kanban)",act:()=>openModal('kanban')},
