@@ -1548,12 +1548,15 @@ function loadState(){
     if(Array.isArray(merged.agents)) merged.agents.forEach(a=>{ if(typeof a.active!=='boolean') a.active = true; });
     // One-time (2026-06-07): drop the new cost-accounting/ERP drafts c8–c12 straight into the Drafts column
     // of any existing pipeline. Runs once (flag), skips ids already present, so later deletions stick.
-    if(!merged._kmDraftsV2){
-      merged._kmDraftsV2 = true;
+    // NOTE: read from DEFAULTS (untouched constant), NOT base — Object.assign above clobbered base._samplePosts
+    // with the stale copy persisted in the user's saved state. Flag is V3 because the buggy V2 run already
+    // set its own flag without adding anything.
+    if(!merged._kmDraftsV3){
+      merged._kmDraftsV3 = true;
       if(Array.isArray(merged.content)){
         const have = new Set(merged.content.map(p=>p.id));
         ['c8','c9','c10','c11','c12'].forEach(id=>{
-          const post = (base._samplePosts||[]).find(p=>p.id===id);
+          const post = (DEFAULTS._samplePosts||[]).find(p=>p.id===id);
           if(post && !have.has(id)) merged.content.push(JSON.parse(JSON.stringify(post)));
         });
       }
